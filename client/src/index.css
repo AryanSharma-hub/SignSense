@@ -1,0 +1,120 @@
+@import '@fontsource-variable/bricolage-grotesque/wght.css';
+@import '@fontsource/atkinson-hyperlegible-next/400.css';
+@import '@fontsource/atkinson-hyperlegible-next/500.css';
+@import '@fontsource/atkinson-hyperlegible-next/600.css';
+@import '@fontsource/atkinson-hyperlegible-next/700.css';
+@import '@fontsource/atkinson-hyperlegible-mono/400.css';
+@import '@fontsource/atkinson-hyperlegible-mono/500.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Design tokens. Light = cool paper + ink; dark = deep blue-slate.
+ * Chroma is reserved for meaning: the five parameter hues, a live/recording red, and ok.
+ * Everything else is neutral, so the parameter colors read at a glance.
+ */
+:root {
+  --bg: 234 238 243;
+  --surface: 255 255 255;
+  --surface2: 243 246 250;
+  --ink: 22 27 35;
+  --muted: 88 98 113;
+  --line: 208 214 223;
+  --line-soft: 226 231 238;
+  --on-accent: 255 255 255;
+  --expression: 168 92 10;
+  --hand: 12 118 106;
+  --movement: 98 66 190;
+  --head: 172 52 78;
+  --location: 96 114 8;
+  --ok: 24 128 80;
+  --live: 208 50 38;
+  --dummy-fill: 250 251 253;
+  --dummy-line: 150 160 175;
+}
+.dark {
+  --bg: 15 19 25;
+  --surface: 23 28 36;
+  --surface2: 30 36 46;
+  --ink: 233 236 241;
+  --muted: 154 163 178;
+  --line: 47 55 67;
+  --line-soft: 36 43 53;
+  --on-accent: 15 19 25;
+  --expression: 236 168 66;
+  --hand: 86 212 199;
+  --movement: 182 146 255;
+  --head: 255 146 164;
+  --location: 186 208 76;
+  --ok: 84 222 150;
+  --live: 255 124 108;
+  --dummy-fill: 40 47 59;
+  --dummy-line: 110 122 140;
+}
+
+@layer base {
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    @apply bg-bg text-ink font-sans antialiased;
+    font-feature-settings: 'ss01', 'kern';
+    min-height: 100dvh;
+  }
+  :focus-visible { outline: 3px solid rgb(var(--hand)); outline-offset: 2px; border-radius: 6px; }
+  ::selection { background: rgb(var(--hand) / 0.25); }
+  button { @apply select-none; touch-action: manipulation; }
+}
+
+@layer components {
+  .panel { @apply bg-surface border border-line rounded-2xl; }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface px-3.5 min-h-[44px]
+           text-[15px] font-medium text-ink transition-colors hover:bg-surface2 disabled:opacity-45 disabled:pointer-events-none;
+  }
+  .btn-primary { @apply border-transparent bg-ink text-bg hover:bg-ink/85; }
+  .btn-quiet { @apply border-transparent bg-transparent hover:bg-surface2; }
+  .field-label { @apply text-[13px] font-semibold text-muted; }
+  .gloss { @apply font-semibold tracking-wide; }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[14px] font-semibold;
+  }
+  .sr-only-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+}
+
+/* Cross-fading face layers + drag affordances on the signer. */
+.face-layer { transition: opacity 0.18s ease; }
+.signer-hit { cursor: grab; touch-action: none; }
+.signer-hit:active { cursor: grabbing; }
+.loc-dot { cursor: pointer; }
+.loc-dot:hover circle.core, .loc-dot:focus-visible circle.core { r: 6.5; }
+
+/* Position the mic pulse only when motion is welcome. */
+@media (prefers-reduced-motion: no-preference) {
+  .pulse-live { animation: pulse-live 1.4s ease-out infinite; }
+  @keyframes pulse-live {
+    0% { box-shadow: 0 0 0 0 rgb(var(--live) / 0.45); }
+    100% { box-shadow: 0 0 0 16px rgb(var(--live) / 0); }
+  }
+  .turn-in { animation: turn-in 0.28s ease-out both; }
+  @keyframes turn-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+}
+
+/* Slim scrollbars inside panels. */
+.scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
+
+/* Conversation-centric layout (spec §10): stage + compose + transcript. */
+.app-grid { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1fr); grid-template-areas: 'stage' 'convo' 'compose'; }
+.area-stage { grid-area: stage; }
+.area-compose { grid-area: compose; }
+.area-convo { grid-area: convo; }
+.convo-panel { height: min(74dvh, 680px); min-height: 440px; }
+@media (min-width: 1024px) {
+  .app-grid { grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); grid-template-areas: 'stage convo' 'compose compose'; }
+  .convo-panel { height: 100%; min-height: 520px; max-height: 720px; }
+}
+@media (min-width: 1360px) {
+  .app-grid { grid-template-columns: minmax(300px, 370px) minmax(0, 1fr) minmax(340px, 420px); grid-template-areas: 'stage compose convo'; align-items: start; }
+  .area-stage, .area-convo { position: sticky; top: 1rem; }
+  .convo-panel { height: calc(100dvh - 2rem); max-height: none; }
+}

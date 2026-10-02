@@ -1,0 +1,93 @@
+import { useEffect, useRef, useState } from 'react';
+import { motionOffset, headMotionOffset, MOTION_SECONDS } from '../lib/pose.js';
+
+const RATE = 12; // exponential ease rate for anchors / finger curls
+const SIDES = ['right', 'left'];
+
+export const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+const handState = (h) => ({
+  x: h.x, y: h.y, curl: [...h.shape.curl], spread: h.shape.spread, thumbAngle: h.shape.thumbAngle ?? -55, alpha: h.active ? 1 : 0.4,
+});
+const baseState = (T) => ({ right: handState(T.hands.right), left: handState(T.hands.left), head: { rot: T.head.rot, dx: T.head.dx, dy: T.head.dy } });
+
+/** Frame with the movement's END position applied (used for reduced motion and first paint). */
+function settledFrame(T) {
+  const out = { breathe: 0, head: { rot: T.head.rot, dx: T.head.dx, dy: T.head.dy } };
+  for (const side of SIDES) {
+    const s = handState(T.hands[side]);
+    const m = T.hands[side].motion;
+    const off = m?.kind === 'stroke' ? motionOffset(m, 99) : { x: 0, y: 0 };
+    out[side] = { ...s, x: s.x + off.x, y: s.y + off.y };
+  }
+  return out;
+}
+
+/**
+ * Drives the signer. Anchors and finger curls ease toward their targets; movements
+ * (stroke / tap / shake / orbit) and head nods/shakes are layered on top for a few
+ * seconds; an idle breath keeps the figure alive. The loop sleeps when nothing moves
+ * (mini previews) and is skipped entirely under prefers-reduced-motion.
+ */
+export function useAnimatedPose(targets, { idle = true } = {}) {
+  const [frame, setFrame] = useState(() => settledFrame(targets));
+  const S = useRef(null);
+  if (!S.current) S.current = { cur: baseState(targets), tgt: targets, t0: 0, raf: 0, last: 0, running: false, idle };
+  S.current.idle = idle;
+
+  const stepRef = useRef(null);
+  stepRef.current = (now) => {
+    const s = S.current;
+    const dt = Math.min(0.05, (now - s.last) / 1000 || 0.016);
+    s.last = now;
+    const k = 1 - Math.exp(-dt * RATE);
+    const T = s.tgt, C = s.cur, t = (now - s.t0) / 1000;
+    let settled = true;
+    const ease = (a, b) => { const d = b - a; if (Math.abs(d) > 0.02) settled = false; return a + d * k; };
+
+    for (const side of SIDES) {
+      const th = T.hands[side], c = C[side];
+      c.x = ease(c.x, th.x); c.y = ease(c.y, th.y);
+      th.shape.curl.forEach((v, i) => { c.curl[i] = ease(c.curl[i], v); });
+      c.spread = ease(c.spread, th.shape.spread);
+      c.thumbAngle = ease(c.thumbAngle, th.shape.thumbAngle ?? -55);
+      c.alpha = ease(c.alpha, th.active ? 1 : 0.4);
+    }
+    C.head.rot = ease(C.head.rot, T.head.rot); C.head.dx = ease(C.head.dx, T.head.dx); C.head.dy = ease(C.head.dy, T.head.dy);
+
+    let animating = false;
+    const out = {};
+    for (const side of SIDES) {
+      const m = T.hands[side].motion, c = C[side];
+      if (m && t < (m.kind === 'stroke' ? 0.6 : MOTION_SECONDS)) animating = true;
+      const off = motionOffset(m, t);
+      const sway = s.idle && !T.hands[side].active ? Math.sin(now / 1000 * 0.9 + (side === 'left' ? 1.3 : 0)) * 0.9 : 0;
+      out[side] = { ...c, curl: c.curl.slice(), x: c.x + off.x, y: c.y + off.y + sway };
+    }
+    if (T.head.motion && t < MOTION_SECONDS) animating = true;
+    const bob = s.idle ? Math.sin(now / 1500) : 0;
+    out.head = { rot: C.head.rot + headMotionOffset(T.head, t) + bob * 0.6, dx: C.head.dx, dy: C.head.dy + bob * 0.4 };
+    out.breathe = s.idle ? Math.sin(now / 1000 * 1.6) * 0.9 : 0;
+    setFrame(out);
+
+    if (!settled || animating || s.idle) s.raf = requestAnimationFrame((n) => stepRef.current(n));
+    else s.running = false;
+  };
+
+  useEffect(() => {
+    const s = S.current;
+    s.tgt = targets;
+    s.t0 = performance.now();
+    if (prefersReducedMotion()) {
+      cancelAnimationFrame(s.raf); s.running = false;
+      s.cur = baseState(targets);
+      setFrame(settledFrame(targets));
+      return;
+    }
+    if (!s.running) { s.running = true; s.last = performance.now(); s.raf = requestAnimationFrame((n) => stepRef.current(n)); }
+  }, [targets]);
+
+  useEffect(() => () => { cancelAnimationFrame(S.current.raf); S.current.running = false; }, []);
+  return frame;
+}

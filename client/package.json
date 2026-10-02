@@ -1,0 +1,30 @@
+{
+  "name": "@signsense/client",
+  "private": true,
+  "version": "4.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@fontsource-variable/bricolage-grotesque": "^5.2.0",
+    "@fontsource/atkinson-hyperlegible-mono": "^5.2.0",
+    "@fontsource/atkinson-hyperlegible-next": "^5.2.0",
+    "@tanstack/react-query": "^5.59.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16",
+    "@vitejs/plugin-react": "^5.0.0",
+    "autoprefixer": "^10.4.20",
+    "jsdom": "^26",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "vite": "^7.0.0",
+    "vitest": "^3"
+  }
+}

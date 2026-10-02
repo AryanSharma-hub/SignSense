@@ -1,0 +1,19 @@
+{
+  "name": "signsense",
+  "private": true,
+  "version": "4.0.0",
+  "description": "SignSense — bidirectional ASL communication app (React + Tailwind + Express + Postgres)",
+  "type": "module",
+  "workspaces": ["client", "server"],
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client",
+    "start": "npm run start -w server",
+    "seed": "npm run seed -w server",
+    "seed:reset": "npm run seed:reset -w server",
+    "test": "npm run test -w client && npm run test -w server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}
