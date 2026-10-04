@@ -4,25 +4,31 @@ import { resolveHands } from '../lib/resolveHands.js';
 import { stepHasAny } from '../lib/steps.js';
 import { byId } from '../lib/vocabulary.js';
 
-/** Chips for one step. Hands are read through resolveHands, like every other hand-read path. */
+const linkSuffix = (step, k) => ((step.together || []).some((p) => p.includes(k)) ? <span key={`${k}-link`} aria-hidden className="ml-0.5">🔗</span> : null);
+
+/** Chips for one step. Hands are read through resolveHands, like every other hand-read path.
+ * A 🔗 marks a parameter explicitly tagged as "together" with another part of this step
+ * (see lib/steps.js togglePair/prunedTogether) — informational, every chip here already
+ * plays simultaneously since a step is one frame. */
 export function StepBadges({ step, vocab }) {
   const HR = resolveHands(step.H, vocab);
   const label = (k, id) => byId(vocab, k, id)?.label ?? id;
   const out = [];
-  if (step.E) out.push(<ParamChip key="e" k="E">{label('E', step.E)}</ParamChip>);
-  if (HR.joined) out.push(<ParamChip key="h" k="H">Both · {label('H', HR.right)}</ParamChip>);
+  const linked = (k) => (step.together || []).some((p) => p.includes(k));
+  if (step.E) out.push(<ParamChip key="e" k="E" title={linked('E') ? 'Linked: happens together with another part' : undefined}>{label('E', step.E)}{linkSuffix(step, 'E')}</ParamChip>);
+  if (HR.joined) out.push(<ParamChip key="h" k="H">Both · {label('H', HR.right)}{linkSuffix(step, 'H')}</ParamChip>);
   else {
-    if (HR.right) out.push(<ParamChip key="hr" k="H">R · {label('H', HR.right)}</ParamChip>);
-    if (HR.left) out.push(<ParamChip key="hl" k="H">L · {label('H', HR.left)}</ParamChip>);
+    if (HR.right) out.push(<ParamChip key="hr" k="H">R · {label('H', HR.right)}{linkSuffix(step, 'H')}</ParamChip>);
+    if (HR.left) out.push(<ParamChip key="hl" k="H">L · {label('H', HR.left)}{linkSuffix(step, 'H')}</ParamChip>);
   }
   const { right: mr, left: ml } = step.M || {};
-  if (mr && ml && mr === ml) out.push(<ParamChip key="m" k="M">{label('M', mr)}</ParamChip>);
+  if (mr && ml && mr === ml) out.push(<ParamChip key="m" k="M">{label('M', mr)}{linkSuffix(step, 'M')}</ParamChip>);
   else {
-    if (mr) out.push(<ParamChip key="mr" k="M">R · {label('M', mr)}</ParamChip>);
-    if (ml) out.push(<ParamChip key="ml" k="M">L · {label('M', ml)}</ParamChip>);
+    if (mr) out.push(<ParamChip key="mr" k="M">R · {label('M', mr)}{linkSuffix(step, 'M')}</ParamChip>);
+    if (ml) out.push(<ParamChip key="ml" k="M">L · {label('M', ml)}{linkSuffix(step, 'M')}</ParamChip>);
   }
-  if (step.L) out.push(<ParamChip key="l" k="L">{label('L', step.L)}</ParamChip>);
-  if (step.HD) out.push(<ParamChip key="hd" k="HD">{label('HD', step.HD)}</ParamChip>);
+  if (step.L) out.push(<ParamChip key="l" k="L">{label('L', step.L)}{linkSuffix(step, 'L')}</ParamChip>);
+  if (step.HD) out.push(<ParamChip key="hd" k="HD">{label('HD', step.HD)}{linkSuffix(step, 'HD')}</ParamChip>);
   return <div className="flex flex-wrap gap-1">{out.length ? out : <span className="text-[13px] text-muted">Empty</span>}</div>;
 }
 

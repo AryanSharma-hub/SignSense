@@ -6,13 +6,43 @@
  * L (location) is nullable — null means the neutral/chest default, so data written
  * before the location parameter existed keeps working unchanged.
  */
-export const blankStep = () => ({ E: null, HD: null, L: null, H: { right: null, left: null }, M: { right: null, left: null } });
+export const blankStep = () => ({ E: null, HD: null, L: null, H: { right: null, left: null }, M: { right: null, left: null }, together: [] });
 
 export const cloneStep = (s) => ({
   E: s?.E ?? null, HD: s?.HD ?? null, L: s?.L ?? null,
   H: { right: s?.H?.right ?? null, left: s?.H?.left ?? null },
   M: { right: s?.M?.right ?? null, left: s?.M?.left ?? null },
+  together: (s?.together ?? []).map((p) => [...p]),
 });
+
+/**
+ * "Together": an explicit, author/query-time annotation that two parameters in the SAME
+ * step are a deliberately linked pair (distinct from `joined`, which the hand parameter
+ * alone derives for two-palm handshapes). A step is already one simultaneous frame, so
+ * this never changes playback — it's a storage/display annotation only.
+ */
+const TOGETHER_FILLED = {
+  E: (s) => !!s.E, HD: (s) => !!s.HD, L: (s) => !!s.L,
+  H: (s) => !!(s.H?.right || s.H?.left), M: (s) => !!(s.M?.right || s.M?.left),
+};
+const pairKey = (a, b) => [a, b].sort().join('+');
+
+/** Does `together` already contain the pair {a,b} (order-independent)? */
+export function hasPair(together, a, b) {
+  return (together || []).some((p) => pairKey(p[0], p[1]) === pairKey(a, b));
+}
+
+/** Toggle the pair {a,b} in/out of a `together` list. */
+export function togglePair(together, a, b) {
+  if (!a || !b || a === b) return together || [];
+  if (hasPair(together, a, b)) return together.filter((p) => pairKey(p[0], p[1]) !== pairKey(a, b));
+  return [...(together || []), [a, b].sort()];
+}
+
+/** Drop any pair that references a parameter key whose slot is no longer filled on this step. */
+export function prunedTogether(step) {
+  return (step.together || []).filter(([a, b]) => TOGETHER_FILLED[a]?.(step) && TOGETHER_FILLED[b]?.(step));
+}
 
 export function stepHasAny(step) {
   return !!(step && (step.E || step.HD || step.L || step.H?.right || step.H?.left || step.M?.right || step.M?.left));

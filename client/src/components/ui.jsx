@@ -37,6 +37,26 @@ export function OptionGrid({ k, items, selected = [], onPick, cols = 'grid-cols-
   );
 }
 
+/** A LeetCode-style draggable divider between two resizable panes. */
+export function Divider({ axis = 'x', onDragStart, onNudge, label }) {
+  return (
+    <div
+      role="separator" aria-orientation={axis === 'x' ? 'vertical' : 'horizontal'} aria-label={label} tabIndex={0}
+      onPointerDown={onDragStart}
+      onKeyDown={(e) => {
+        const back = axis === 'x' ? 'ArrowLeft' : 'ArrowUp', fwd = axis === 'x' ? 'ArrowRight' : 'ArrowDown';
+        if (e.key === back) { e.preventDefault(); onNudge(-1); }
+        else if (e.key === fwd) { e.preventDefault(); onNudge(1); }
+      }}
+      className={`group relative shrink-0 touch-none ${axis === 'x' ? 'w-2 cursor-col-resize' : 'h-2 cursor-row-resize'}`}
+    >
+      <div className={`absolute bg-line transition-colors group-hover:bg-hand/60 group-focus-visible:bg-hand
+        ${axis === 'x' ? 'inset-y-0 left-1/2 w-px -translate-x-1/2' : 'inset-x-0 top-1/2 h-px -translate-y-1/2'}`}
+      />
+    </div>
+  );
+}
+
 export function Segmented({ value, onChange, options, label, tone = 'bg-ink text-bg' }) {
   return (
     <div role="radiogroup" aria-label={label} className="inline-flex rounded-xl border border-line bg-surface2 p-1">

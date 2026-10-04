@@ -21,6 +21,8 @@ export function useFlags(serverConfig) {
     aiSentence: !!user.aiSentence && available.aiSentence,
     aiConcepts: !!user.aiConcepts && available.aiConcepts,
     serverStt: !!user.serverStt && available.serverStt,
+    // Purely client-side (no server gate), so it defaults ON unless the person turns it off.
+    autoFingerspell: user.autoFingerspell !== false,
   }), [user, available]);
   return { user, available, effective, set };
 }

@@ -12,6 +12,11 @@ export const FUNCTION_WORDS = new Set([
   'than', 'that', 'this', 'these', 'those', 'am', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'do', 'does',
   'did', 'would', 'could', 'should', 'will', 'shall', 'can', 'may', 'might', 'must', 'it', 'its', 'and', 'or', 'um',
   'uh', 'oh', 'ah', 'hmm', 'well',
+  // possessive/object pronouns NOT confirmed as real ASL-LEX signs stay grammar-only, so
+  // they're never fingerspelled either. "my"/"your"/"his"/"our"/"mine"/"us" DO have real
+  // ASL-LEX signs (confirmed), so they're deliberately left out of this list — they now
+  // resolve to real gestures via the keyword index, same as any other sign.
+  'her', 'their', 'yours', 'ours', 'theirs',
 ]);
 
 const AUX_START = new Set(['do', 'does', 'did', 'is', 'are', 'am', 'was', 'were', 'can', 'could', 'will', 'would', 'should', 'shall', 'may', 'might', 'have', 'has', 'had']);

@@ -44,12 +44,38 @@ test('gestures come back in the step-object shape, ordered, with keywords', asyn
   assert.equal(mother.signForm[0].L, 'L04');                      // chin
   assert.equal(father.signForm[0].L, 'L02');                      // forehead
   assert.deepEqual(mother.signForm[0].H, father.signForm[0].H);   // same handshape: location is the only difference
-  assert.deepEqual(Object.keys(mother.signForm[0]).sort(), ['E', 'H', 'HD', 'L', 'M', 'joined']);
+  assert.deepEqual(Object.keys(mother.signForm[0]).sort(), ['E', 'H', 'HD', 'L', 'M', 'joined', 'together']);
   assert.ok(mother.keywords.some((k) => k.keyword === 'mom'));
   const help = gestures.find((g) => g.gloss === 'HELP');
   assert.equal(help.signForm[0].joined, false);                   // fist on palm = independent hands
   const please = gestures.find((g) => g.gloss === 'PLEASE');
   assert.equal(please.signForm[0].joined, true);
+});
+
+test('ASL-LEX-derived gestures carry real handshape/location categories, not the hash-based placeholder ones', async () => {
+  const { gestures } = await get('/api/gestures');
+  for (const gloss of ['TREE', 'MONKEY', 'CHAIR']) {
+    const g = gestures.find((x) => x.gloss === gloss);
+    assert.ok(g, `${gloss} should exist (from ASL-LEX)`);
+    assert.equal(g.needsReview, true);
+    const step = g.signForm[0];
+    assert.match(step.H.right, /^HX_/);                            // a real ASL-LEX handshape id, not H14-H35 placeholder
+  }
+  // the curated 16 and the explicit test-sensitive exclusions are never overridden/recreated
+  assert.equal(gestures.find((g) => g.gloss === 'WATER').signForm[0].H.right, 'H11');
+  assert.ok(!gestures.find((g) => g.gloss === 'SANDWICH'));
+  assert.ok(!gestures.find((g) => g.gloss === 'BATHROOM'));
+  // no duplicate gloss between any source (curated / ASL-LEX / placeholder)
+  const glosses = gestures.map((g) => g.gloss);
+  assert.equal(new Set(glosses).size, glosses.length);
+});
+
+test('an explicit "together" pairing on a step round-trips through seed -> DB -> API', async () => {
+  const { gestures } = await get('/api/gestures');
+  const hello = gestures.find((g) => g.gloss === 'HELLO');
+  assert.deepEqual(hello.signForm[0].together, [['H', 'L']]);
+  // every other step defaults to no pairing
+  assert.deepEqual(hello.signForm[1].together, []);
 });
 
 test('single gesture lookup and 404', async () => {

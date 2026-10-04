@@ -1,5 +1,6 @@
 import { runTiered } from '../tiered.js';
 import { markerFor } from '../nonManual.js';
+import { spellWord } from '../fingerspell.js';
 import { detectSentenceType } from './sentenceType.js';
 import { extractDeterministic, matchConcepts } from './deterministic.js';
 import { extractConceptsAi } from './aiTier.js';
@@ -19,19 +20,23 @@ function collapse(matches) {
  *
  * @returns analysis {transcript, sentenceType, marker, words[], unmatched[], parts|null, tier, fellBack}
  */
-export async function speechToGloss(transcript, { index, vocab, useAi = false, api } = {}) {
+export async function speechToGloss(transcript, { index, vocab, useAi = false, api, autoFingerspell = true } = {}) {
   const clean = String(transcript || '').trim();
   const sentenceType = detectSentenceType(clean);
   const marker = markerFor(sentenceType, vocab);
 
   const res = await runTiered({
     useAi: useAi && !!api,
-    deterministic: async () => extractDeterministic(clean, index),
-    ai: async () => matchConcepts(await extractConceptsAi(clean, api), index),
+    deterministic: async () => extractDeterministic(clean, index, { autoFingerspell }),
+    ai: async () => matchConcepts(await extractConceptsAi(clean, api), index, { autoFingerspell }),
   });
   const { matches, unmatched, parts } = res.value;
 
   const words = collapse(matches).map((m) => {
+    if (m.via === 'spelled') {
+      const built = spellWord(m.gloss, vocab);
+      return { gloss: built.gloss, gestureId: null, signForm: built.signForm, via: m.via, score: m.score, source: m.source, needsReview: false, spelled: true };
+    }
     const g = index.gestureById.get(m.gestureId);
     return { gloss: g.gloss, gestureId: g.id, signForm: g.signForm, via: m.via, score: m.score, source: m.source, needsReview: !!g.needsReview };
   });

@@ -51,6 +51,12 @@ export function Header({ theme, onToggleTheme, flags, sttTier, reviewCount, tota
               are placeholders to demonstrate the app, not verified ASL. Please don't rely on this for medical, legal or other
               important communication until an ASL-fluent reviewer has checked the data.
             </p>
+            <p className="mt-2 border-t border-line pt-2 text-[12.5px] text-muted">
+              Most signs' handshape/location/movement categories are drawn from{' '}
+              <a className="underline" href="https://asl-lex.org/" target="_blank" rel="noreferrer">ASL-LEX 2.0</a>{' '}
+              (Caselli, Sehyr, Cohen-Goldberg &amp; Emmorey), used under CC BY-NC 4.0 — real linguistic categories, but
+              translated into this app's rendering by us, not independently reviewed.
+            </p>
           </Popover>
         )}
         <Popover label="Engines" trigger={<><Icon name="sliders" size={16} /> Engines</>}>
@@ -59,6 +65,7 @@ export function Header({ theme, onToggleTheme, flags, sttTier, reviewCount, tota
           <Toggle label="AI wording for your sentences" hint={flags.available.aiSentence ? 'Smoother English from your signs.' : 'Not configured on the server.'} checked={!!flags.user.aiSentence && flags.available.aiSentence} disabled={!flags.available.aiSentence} onChange={(v) => flags.set('aiSentence', v)} />
           <Toggle label="AI understanding of speech" hint={flags.available.aiConcepts ? 'Better with paraphrases and rephrasing.' : 'Not configured on the server.'} checked={!!flags.user.aiConcepts && flags.available.aiConcepts} disabled={!flags.available.aiConcepts} onChange={(v) => flags.set('aiConcepts', v)} />
           <Toggle label="Server speech recognition" hint={flags.available.serverStt ? 'Use instead of the browser’s built-in recognition.' : 'Not configured on the server.'} checked={!!flags.user.serverStt && flags.available.serverStt} disabled={!flags.available.serverStt} onChange={(v) => flags.set('serverStt', v)} />
+          <Toggle label="Fingerspell unknown words" hint="Proper nouns and other words with no sign are spelled out letter by letter instead of left unsigned." checked={flags.effective.autoFingerspell} onChange={(v) => flags.set('autoFingerspell', v)} />
           <p className="mt-2 border-t border-line pt-2 text-[13px] text-muted">{tierText}</p>
         </Popover>
         <button type="button" className="btn !min-h-[42px] !px-3" onClick={onToggleTheme} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}>

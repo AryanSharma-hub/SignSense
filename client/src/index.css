@@ -33,6 +33,13 @@
   --live: 208 50 38;
   --dummy-fill: 250 251 253;
   --dummy-line: 150 160 175;
+  /* Per-finger hues (dummy only) — distinct from the five parameter hues above so a
+     handshape's own curl pattern reads at a glance without implying a parameter meaning. */
+  --finger-index: 194 65 12;
+  --finger-middle: 21 128 61;
+  --finger-ring: 8 145 178;
+  --finger-pinky: 126 34 206;
+  --finger-thumb: 190 18 122;
 }
 .dark {
   --bg: 15 19 25;
@@ -52,6 +59,11 @@
   --live: 255 124 108;
   --dummy-fill: 40 47 59;
   --dummy-line: 110 122 140;
+  --finger-index: 251 146 60;
+  --finger-middle: 74 222 128;
+  --finger-ring: 103 232 249;
+  --finger-pinky: 192 149 252;
+  --finger-thumb: 244 114 182;
 }
 
 @layer base {
@@ -103,18 +115,31 @@
 /* Slim scrollbars inside panels. */
 .scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
 
-/* Conversation-centric layout (spec §10): stage + compose + transcript. */
-.app-grid { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1fr); grid-template-areas: 'stage' 'convo' 'compose'; }
-.area-stage { grid-area: stage; }
-.area-compose { grid-area: compose; }
-.area-convo { grid-area: convo; }
-.convo-panel { height: min(74dvh, 680px); min-height: 440px; }
-@media (min-width: 1024px) {
-  .app-grid { grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); grid-template-areas: 'stage convo' 'compose compose'; }
-  .convo-panel { height: 100%; min-height: 520px; max-height: 720px; }
-}
+/*
+ * LeetCode-style resizable layout: Dummy (stage) in the center, Query Results above Query
+ * Builder on the left (results feeds the builder below it), ChatBox above Sentence Formed
+ * on the right (sentence feeds up into the chat above it when said). Two draggable
+ * dividers split left | center | right; one more inside each side column splits its own
+ * top/bottom pair. Pane sizes are pixel values held in React state (useResizable) and
+ * passed down as CSS custom properties, so the stylesheet only needs to know which
+ * property each pane's size feeds — not the sizes themselves.
+ *
+ * Below 1360px this all collapses to one scrolling column (dividers hidden, sizes
+ * ignored) — a plain, simple stacked layout. At 1360px+ the outer left/stage/right split
+ * becomes a row, the whole page stops scrolling, and every pane scrolls internally.
+ */
+.app-grid { display: flex; flex-direction: column; gap: 1rem; }
+.split-col { display: flex; flex-direction: column; min-height: 0; min-width: 0; gap: 0.75rem; }
+.split-pane { min-height: 0; min-width: 0; }
+.split-pane-top { flex: 0 0 var(--pane-h, auto); overflow-y: auto; }
+.split-pane-bottom { flex: 1 1 auto; min-height: 160px; overflow-y: auto; }
+.resize-divider-x { display: none; }
+.convo-panel { height: 100%; }
+
 @media (min-width: 1360px) {
-  .app-grid { grid-template-columns: minmax(300px, 370px) minmax(0, 1fr) minmax(340px, 420px); grid-template-areas: 'stage compose convo'; align-items: start; }
-  .area-stage, .area-convo { position: sticky; top: 1rem; }
-  .convo-panel { height: calc(100dvh - 2rem); max-height: none; }
+  .app-shell { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+  .app-grid { flex: 1 1 auto; min-height: 0; flex-direction: row; gap: 0; }
+  .split-col { flex: 0 0 var(--split-w, 380px); height: 100%; gap: 0.5rem; }
+  .area-stage { flex: 1 1 auto; min-width: 300px; min-height: 0; }
+  .resize-divider-x { display: block; }
 }

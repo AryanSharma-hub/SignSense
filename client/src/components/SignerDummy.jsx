@@ -47,7 +47,7 @@ function armPath(S, W, sx) {
   const t = Math.max(0, Math.min(1, (d - 30) / 30));
   const E = { x: down.x + (swing.x - down.x) * t, y: down.y + (swing.y - down.y) * t };
   const c = { x: (S.x + E.x) / 2, y: (S.y + E.y) / 2 };
-  return `M${S.x} ${S.y} Q${c.x} ${c.y} ${E.x} ${E.y} T${W.x} ${W.y}`;
+  return { d: `M${S.x} ${S.y} Q${c.x} ${c.y} ${E.x} ${E.y} T${W.x} ${W.y}`, elbow: E };
 }
 
 /**
@@ -123,6 +123,8 @@ export function SignerDummy({
     const S = SHOULDER[side], h = f[side], sx = side === 'right' ? 1 : -1;
     return armPath(S, { x: h.x, y: h.y + 11 }, sx);
   };
+  const limbs = { left: arm('left'), right: arm('right') };
+  const RIG = 'rgb(var(--ink) / 0.32)';
 
   const label = describePose(pose, vocab);
   const active = { right: effective.hands.right.active, left: effective.hands.left.active };
@@ -143,10 +145,30 @@ export function SignerDummy({
         {/* arms: bezier limbs recomputed each frame from the animated hand positions */}
         {['left', 'right'].map((side) => (
           <g key={side} opacity={0.55 + 0.45 * f[side].alpha}>
-            <path d={arm(side)} fill="none" stroke={active[side] ? 'rgb(var(--hand))' : 'rgb(var(--dummy-line))'} strokeWidth="13" strokeLinecap="round" />
-            <path d={arm(side)} fill="none" stroke="rgb(var(--dummy-fill))" strokeWidth="10" strokeLinecap="round" />
+            <path d={limbs[side].d} fill="none" stroke={active[side] ? 'rgb(var(--hand))' : 'rgb(var(--dummy-line))'} strokeWidth="13" strokeLinecap="round" />
+            <path d={limbs[side].d} fill="none" stroke="rgb(var(--dummy-fill))" strokeWidth="10" strokeLinecap="round" />
           </g>
         ))}
+
+        {/* skeleton rig overlay: body -> neck -> shoulders -> elbow -> wrist, thin and
+            semi-transparent so the articulation chain reads clearly without changing the
+            figure's filled look. Finger-level rig lines live in HandShape.jsx. */}
+        <g aria-hidden style={{ transform: `translateY(${f.breathe}px)` }}>
+          <line x1="120" y1="290" x2="120" y2="116" stroke={RIG} strokeWidth="1.3" strokeLinecap="round" />
+          <line x1={SHOULDER.left.x} y1={SHOULDER.left.y} x2={SHOULDER.right.x} y2={SHOULDER.right.y} stroke={RIG} strokeWidth="1.3" strokeLinecap="round" />
+          <circle cx="120" cy="150" r="2.2" fill={RIG} />
+        </g>
+        {['left', 'right'].map((side) => {
+          const S = SHOULDER[side], elbow = limbs[side].elbow, h = f[side];
+          return (
+            <g key={`rig-${side}`} aria-hidden>
+              <line x1={S.x} y1={S.y} x2={elbow.x} y2={elbow.y} stroke={RIG} strokeWidth="1.3" strokeLinecap="round" />
+              <line x1={elbow.x} y1={elbow.y} x2={h.x} y2={h.y + 11} stroke={RIG} strokeWidth="1.3" strokeLinecap="round" />
+              <circle cx={S.x} cy={S.y} r="2.2" fill={RIG} />
+              <circle cx={elbow.x} cy={elbow.y} r="2.2" fill={RIG} />
+            </g>
+          );
+        })}
 
         {/* head: one transform (rotation + drag nudge), features cross-fade inside */}
         <g style={{ transform: `translate(${f.head.dx}px, ${f.head.dy}px) rotate(${f.head.rot}deg)`, transformOrigin: '120px 78px', transformBox: 'view-box' }}>

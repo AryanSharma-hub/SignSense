@@ -75,6 +75,11 @@ create table if not exists gesture_steps (
   movement_left_id   text references movements(id),
   location_id        text references locations(id),   -- nullable: null = neutral/chest default
   joined             boolean not null default false,
+  -- Explicit author-time pairing of two parameters in this step as a deliberate
+  -- simultaneous unit (distinct from `joined`, which is only ever derived from
+  -- two-palm handshapes). Shape: array of 2-element arrays of parameter keys
+  -- ("E","H","M","HD","L"), each pair alphabetically sorted, e.g. [["H","L"]].
+  together           jsonb not null default '[]',
   unique (gesture_id, step_order)
 );
 

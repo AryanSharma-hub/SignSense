@@ -4,6 +4,7 @@ import { OptionGrid, Icon, Segmented } from './ui.jsx';
 import { describePose } from '../lib/pose.js';
 import { describeMarker } from '../lib/nonManual.js';
 import { movementForDrag, headForDrag } from '../lib/direct.js';
+import { expressiveHands } from '../lib/vocabulary.js';
 
 /**
  * The signer stage — the primary interactive surface for Direction A and the shared
@@ -88,7 +89,7 @@ export function Stage({ composer, vocab, player }) {
             <OptionGrid k="E" items={vocab.expressions} selected={[staged.E]} onPick={(id) => { dispatch({ type: 'setE', id }); setPicker(null); }} />
           )}
           {picker === 'H' && (
-            <OptionGrid k="H" hands items={vocab.hands} selected={[staged.H[activeHand]]} onPick={(id) => { dispatch({ type: 'setH', id, side: activeHand }); setPicker(null); }} />
+            <OptionGrid k="H" hands items={expressiveHands(vocab)} selected={[staged.H[activeHand]]} onPick={(id) => { dispatch({ type: 'setH', id, side: activeHand }); setPicker(null); }} />
           )}
           {picker === 'L' && (
             <>

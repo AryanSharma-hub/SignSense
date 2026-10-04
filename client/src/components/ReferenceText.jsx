@@ -3,6 +3,7 @@ import { describeMarker } from '../lib/nonManual.js';
 /**
  * The hearing user's words, annotated so nothing disappears silently:
  *   matched   -> underlined, with the sign it became
+ *   spelled   -> dashed underline, fingerspelled letter by letter (no sign exists for it)
  *   function  -> dimmed (grammar words with no sign of their own)
  *   marker    -> italic (carried by face/head instead of a sign, e.g. "not")
  *   unmatched -> struck through, and listed as "no sign available"
@@ -25,6 +26,14 @@ export function ReferenceText({ analysis, vocab, compact = false }) {
                 </span>
               );
             }
+            if (p.role === 'spelled') {
+              return (
+                <span key={i}>
+                  <span className="rounded-sm bg-location/12 font-semibold underline decoration-location decoration-dashed decoration-2 underline-offset-4" title="No sign for this word — fingerspelled letter by letter">{p.text}</span>
+                  {p.groupEnd && <sup className="ml-0.5 text-[11px] font-bold text-location">spelled</sup>}
+                </span>
+              );
+            }
             if (p.role === 'unmatched') return <span key={i} className="text-live line-through decoration-2" title="No sign available">{p.text}</span>;
             if (p.role === 'marker') return <span key={i} className="italic text-head" title="Shown with the face and head">{p.text}</span>;
             return <span key={i} className="text-muted">{p.text}</span>;
@@ -35,9 +44,15 @@ export function ReferenceText({ analysis, vocab, compact = false }) {
       {words.length > 0 && (
         <p className="flex flex-wrap items-center gap-1.5" aria-label="Signs">
           {words.map((w, i) => (
-            <span key={`${w.gloss}-${i}`} className="chip border-hand/35 bg-hand/10 text-hand" title={w.needsReview ? 'Draft sign data — not yet reviewed' : undefined}>
-              <span className="gloss">{w.gloss}</span>
-            </span>
+            w.spelled ? (
+              <span key={`${w.gloss}-${i}`} className="chip border-dashed border-location/40 bg-location/10 font-mono text-location" title="Fingerspelled — no single sign for this word">
+                <span className="gloss">{w.gloss.split('').join('-')}</span>
+              </span>
+            ) : (
+              <span key={`${w.gloss}-${i}`} className="chip border-hand/35 bg-hand/10 text-hand" title={w.needsReview ? 'Draft sign data — not yet reviewed' : undefined}>
+                <span className="gloss">{w.gloss}</span>
+              </span>
+            )
           ))}
         </p>
       )}

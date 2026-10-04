@@ -15,14 +15,21 @@ describe('speech -> gloss (deterministic tier)', () => {
 
   it('matches phrases and inflections', async () => {
     expect((await run('thank you so much')).words[0].gloss).toBe('THANK YOU');
-    expect(glosses(await run('She was eating'))).toEqual(['EAT']);
-    expect(glosses(await run('My mom needs help'))).toEqual(['MOTHER', 'WANT', 'HELP']);
-    expect(glosses(await run('my dad is hungry'))).toEqual(['FATHER', 'EAT']);
+    expect(glosses(await run('She was eating'))).toEqual(['SHE', 'EAT']); // "she" is now a sign in the expanded vocabulary
+    expect(glosses(await run('My mom needs help'))).toEqual(['MY', 'MOTHER', 'WANT', 'HELP']); // "my" is now a real ASL-LEX sign too
+    expect(glosses(await run('my dad is hungry'))).toEqual(['MY', 'FATHER', 'EAT']);
   });
 
   it('uses fuzzy matching only as a fallback and not for short words', async () => {
     expect(glosses(await run('watter please'))).toEqual(['WATER', 'PLEASE']);
-    expect((await run('hell')).words).toEqual([]); // must NOT fuzzy-match HELLO
+    expect((await run('zxqv')).words).toEqual([]); // 4-letter nonsense word: too short to fuzzy-match anything
+  });
+
+  it('"hell" is its own real ASL-LEX sign now, not a fuzzy match of HELLO', async () => {
+    const a = await run('hell');
+    expect(a.words).toHaveLength(1);
+    expect(a.words[0].gloss).toBe('HELL');
+    expect(a.words[0].via).toBe('exact');
   });
 
   it('flags unmatched words explicitly instead of dropping them', async () => {
@@ -41,6 +48,38 @@ describe('speech -> gloss (deterministic tier)', () => {
 
   it('collapses consecutive duplicates', async () => {
     expect(glosses(await run('thanks, thank you'))).toEqual(['THANK YOU']);
+  });
+
+  it('fingerspells proper nouns and numbers instead of leaving them unmatched', async () => {
+    const a = await run('I am Sarah');
+    expect(glosses(a)).toEqual(['I', 'SARAH']);
+    const spelled = a.words.find((w) => w.gloss === 'SARAH');
+    expect(spelled.spelled).toBe(true);
+    expect(spelled.needsReview).toBe(false);
+    expect(spelled.signForm).toHaveLength(5); // S-A-R-A-H
+    expect(a.unmatched).toEqual([]);
+
+    const b = await run('I am 12 years old');
+    expect(glosses(b)).toContain('12');
+    expect(b.words.find((w) => w.gloss === '12').spelled).toBe(true);
+  });
+
+  it('does not fingerspell an ordinary capitalized sentence-initial word', async () => {
+    const a = await run('Where is the bathroom');
+    expect(a.words).toEqual([]);
+    expect(a.unmatched.map((u) => u.text)).toEqual(['Where', 'bathroom']);
+  });
+
+  it('fingerspells a lone or sentence-initial proper noun, not just mid-sentence ones', async () => {
+    expect(glosses(await run('Sarah'))).toEqual(['SARAH']);
+    expect(glosses(await run('My name is Sarah'))).toEqual(['MY', 'NAME', 'SARAH']); // "my"/"name" are real signs; "is" stays silent
+    expect(glosses(await run('My mom needs help'))).toEqual(['MY', 'MOTHER', 'WANT', 'HELP']); // "my" signs, not spelled
+  });
+
+  it('can be turned off', async () => {
+    const a = await run('I am Sarah', { autoFingerspell: false });
+    expect(glosses(a)).toEqual(['I']);
+    expect(a.unmatched.map((u) => u.text)).toEqual(['Sarah']);
   });
 });
 

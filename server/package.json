@@ -9,6 +9,7 @@
     "start": "node src/index.js",
     "seed": "node src/db/seed.js",
     "seed:reset": "node src/db/seed.js --force",
+    "seed:validate": "node src/db/validateSeed.js",
     "test": "node --test"
   },
   "dependencies": {

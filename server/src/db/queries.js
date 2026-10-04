@@ -32,6 +32,7 @@ export async function getGestures(db) {
       H: { right: r.hand_right_id, left: r.hand_left_id },
       M: { right: r.movement_right_id, left: r.movement_left_id },
       joined: r.joined,
+      together: r.together || [],
     });
   }
   for (const r of k.rows) {

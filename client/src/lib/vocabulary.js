@@ -25,3 +25,14 @@ export function byId(vocab, key, id) {
   if (!id || !vocab?.index?.[key]) return null;
   return vocab.index[key].get(id) ?? null;
 }
+
+/** Ordinary handshapes a sign is built from — excludes the fingerspelling letters/digits,
+ * which live in the same `hands` table but are only ever picked from the Spell tab. */
+export function expressiveHands(vocab) {
+  return (vocab?.hands || []).filter((h) => !String(h.family || '').startsWith('fingerspell'));
+}
+
+/** The 26 letters + 10 digits, for the fingerspelling picker. */
+export function fingerspellHands(vocab) {
+  return (vocab?.hands || []).filter((h) => String(h.family || '').startsWith('fingerspell'));
+}

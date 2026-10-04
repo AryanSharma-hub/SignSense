@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useReducer, useRef } from 'react';
-import { blankStep, cloneStep, mergeFull, stepHasAny } from '../lib/steps.js';
+import { blankStep, cloneStep, mergeFull, stepHasAny, prunedTogether, togglePair } from '../lib/steps.js';
 import { resolveHands } from '../lib/resolveHands.js';
 import { markerFor } from '../lib/nonManual.js';
 import { byId } from '../lib/vocabulary.js';
@@ -25,9 +25,18 @@ function commitStaged(s) {
 function reduce(s, a, vocab) {
   switch (a.type) {
     case 'setActiveHand': return { ...s, activeHand: a.side };
-    case 'setE': return { ...s, staged: { ...s.staged, E: toggle(s.staged.E, a.id) } };
-    case 'setHD': return { ...s, staged: { ...s.staged, HD: a.set ? a.id : toggle(s.staged.HD, a.id) } };
-    case 'setL': return { ...s, staged: { ...s.staged, L: toggle(s.staged.L, a.id) } };
+    case 'setE': {
+      const staged = { ...s.staged, E: toggle(s.staged.E, a.id) };
+      return { ...s, staged: { ...staged, together: prunedTogether(staged) } };
+    }
+    case 'setHD': {
+      const staged = { ...s.staged, HD: a.set ? a.id : toggle(s.staged.HD, a.id) };
+      return { ...s, staged: { ...staged, together: prunedTogether(staged) } };
+    }
+    case 'setL': {
+      const staged = { ...s.staged, L: toggle(s.staged.L, a.id) };
+      return { ...s, staged: { ...staged, together: prunedTogether(staged) } };
+    }
     case 'setH': {
       const both = !!byId(vocab, 'H', a.id)?.bothHanded;
       const H = { ...s.staged.H };
@@ -40,7 +49,8 @@ function reduce(s, a, vocab) {
         const other = a.side === 'right' ? 'left' : 'right';
         if (byId(vocab, 'H', H[other])?.bothHanded) H[other] = null;
       }
-      return { ...s, staged: { ...s.staged, H } };
+      const staged = { ...s.staged, H };
+      return { ...s, staged: { ...staged, together: prunedTogether(staged) } };
     }
     case 'setM': {
       const M = { ...s.staged.M };
@@ -48,8 +58,13 @@ function reduce(s, a, vocab) {
       const sides = joined ? ['right', 'left'] : [a.side];
       const on = !a.set && sides.every((x) => M[x] === a.id);
       sides.forEach((x) => { M[x] = on ? null : a.id; });
-      return { ...s, staged: { ...s.staged, M } };
+      const staged = { ...s.staged, M };
+      return { ...s, staged: { ...staged, together: prunedTogether(staged) } };
     }
+    case 'togglePairTogether': return { ...s, staged: { ...s.staged, together: togglePair(s.staged.together, a.a, a.b) } };
+    // Manual fingerspelling: each letter/digit is its own step, added directly (not staged),
+    // so spelling a word doesn't disturb whatever is currently being composed.
+    case 'addLetterStep': return { ...s, steps: [...s.steps, { ...blankStep(), H: { right: a.id, left: null } }] };
     case 'clearStaged': return { ...s, staged: blankStep(), editingIndex: null };
     case 'commit': return commitStaged(s);
     case 'loadStep': {

@@ -22,6 +22,7 @@ export const gestures = seed.gestures.map((g, i) => ({
     E: s.E ?? null, HD: s.HD ?? null, L: s.L ?? null,
     H: { right: s.H?.right ?? null, left: s.H?.left ?? null },
     M: { right: s.M?.right ?? null, left: s.M?.left ?? null },
+    together: s.together ?? [],
   })),
   keywords: g.keywords.map(([keyword, weight]) => ({ keyword, weight })),
 }));

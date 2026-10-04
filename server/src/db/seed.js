@@ -70,9 +70,10 @@ export async function seedIfEmpty(db, { force = false } = {}) {
       await db.query(
         `insert into gesture_steps
            (gesture_id,step_order,expression_id,head_id,hand_right_id,hand_left_id,
-            movement_right_id,movement_left_id,location_id,joined)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
-        [gid, i, s.E ?? null, s.HD ?? null, r, l, s.M?.right ?? null, s.M?.left ?? null, s.L ?? null, joined]);
+            movement_right_id,movement_left_id,location_id,joined,together)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        [gid, i, s.E ?? null, s.HD ?? null, r, l, s.M?.right ?? null, s.M?.left ?? null, s.L ?? null, joined,
+          JSON.stringify(s.together ?? [])]);
     }
     for (const [keyword, weight] of g.keywords) {
       await db.query(

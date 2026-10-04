@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { OptionGrid, Segmented, Icon, TONE } from './ui.jsx';
+import { expressiveHands, fingerspellHands } from '../lib/vocabulary.js';
 
 const GRID = [['NW', 'N', 'NE'], ['W', 'CENTER', 'E'], ['SW', 'S', 'SE']];
 const ARROW = { N: '↑', NE: '↗', E: '→', SE: '↘', S: '↓', SW: '↙', W: '←', NW: '↖', CENTER: '•' };
@@ -43,7 +44,7 @@ function MovePad({ vocab, selected, onPick }) {
   );
 }
 
-const TABS = [['E', 'Face'], ['H', 'Hands'], ['M', 'Movement'], ['HD', 'Head'], ['L', 'Location']];
+const TABS = [['E', 'Face'], ['H', 'Hands'], ['M', 'Movement'], ['HD', 'Head'], ['L', 'Location'], ['FS', 'Spell']];
 const OPEN_KEY = 'signsense:precise-open';
 
 /**
@@ -55,8 +56,18 @@ export function ParameterPanels({ composer, vocab }) {
   const [tab, setTab] = useState('H');
   const [open, setOpen] = useState(() => { try { return localStorage.getItem(OPEN_KEY) === '1'; } catch { return false; } });
   const toggle = (e) => { const v = e.currentTarget.open; setOpen(v); try { localStorage.setItem(OPEN_KEY, v ? '1' : '0'); } catch { /* ignore */ } };
+  const [pairPick, setPairPick] = useState(null);
 
   const selM = [staged.M[activeHand], staged.M.right && staged.M.right === staged.M.left ? staged.M.right : null].filter(Boolean);
+
+  const filledKeys = TABS.map(([k]) => k).filter((k) => (
+    k === 'H' ? !!(staged.H.right || staged.H.left) : k === 'M' ? !!(staged.M.right || staged.M.left) : !!staged[k]
+  ));
+  const pickPair = (k) => {
+    if (pairPick == null) setPairPick(k);
+    else if (pairPick === k) setPairPick(null);
+    else { dispatch({ type: 'togglePairTogether', a: pairPick, b: k }); setPairPick(null); }
+  };
 
   return (
     <details className="panel group" open={open} onToggle={toggle}>
@@ -78,7 +89,7 @@ export function ParameterPanels({ composer, vocab }) {
             {TABS.map(([k, label]) => (
               <button
                 key={k} role="tab" type="button" aria-selected={tab === k} onClick={() => setTab(k)}
-                className={`min-h-[40px] rounded-lg border px-3 text-[14px] font-semibold ${tab === k ? TONE[k].solid : `border-line bg-surface hover:bg-surface2`}`}
+                className={`min-h-[40px] rounded-lg border px-3 text-[14px] font-semibold ${tab === k ? (TONE[k] ? TONE[k].solid : 'border-location bg-location text-on-accent') : `border-line bg-surface hover:bg-surface2`}`}
               >{label}</button>
             ))}
           </div>
@@ -89,7 +100,7 @@ export function ParameterPanels({ composer, vocab }) {
         </div>
 
         {tab === 'E' && <OptionGrid k="E" items={vocab.expressions} selected={[staged.E]} onPick={(id) => dispatch({ type: 'setE', id })} cols="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" />}
-        {tab === 'H' && <OptionGrid k="H" hands items={vocab.hands} selected={[staged.H[activeHand]]} onPick={(id) => dispatch({ type: 'setH', id, side: activeHand })} cols="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" />}
+        {tab === 'H' && <OptionGrid k="H" hands items={expressiveHands(vocab)} selected={[staged.H[activeHand]]} onPick={(id) => dispatch({ type: 'setH', id, side: activeHand })} cols="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" />}
         {tab === 'M' && <MovePad vocab={vocab} selected={selM} onPick={(id) => dispatch({ type: 'setM', id, side: activeHand })} />}
         {tab === 'HD' && <OptionGrid k="HD" items={vocab.heads} selected={[staged.HD]} onPick={(id) => dispatch({ type: 'setHD', id })} cols="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" />}
         {tab === 'L' && (
@@ -97,6 +108,39 @@ export function ParameterPanels({ composer, vocab }) {
             <p className="mb-2 text-[13.5px] text-muted">Where on the body the sign is made. Leave unset for the neutral chest position.</p>
             <OptionGrid k="L" items={vocab.locations} selected={[staged.L]} onPick={(id) => dispatch({ type: 'setL', id })} cols="grid-cols-2 sm:grid-cols-3 lg:grid-cols-4" />
           </>
+        )}
+        {tab === 'FS' && (
+          <>
+            <p className="mb-2 text-[13.5px] text-muted">
+              Spell a name or word with no sign, one letter or digit at a time. Each tap adds its own step to the timeline immediately.
+            </p>
+            <OptionGrid k="H" hands items={fingerspellHands(vocab)} selected={[]} onPick={(id) => dispatch({ type: 'addLetterStep', id })} cols="grid-cols-4 sm:grid-cols-6 lg:grid-cols-8" />
+          </>
+        )}
+
+        {filledKeys.length >= 2 && (
+          <div className="mt-4 border-t border-line pt-3">
+            <p className="field-label mb-1">Together</p>
+            <p className="mb-2 text-[13px] text-muted">
+              Tap two to mark them as a deliberately linked pair — happening together, saved with the sign.
+            </p>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Link two parameters together">
+              {filledKeys.map((k) => {
+                const linked = (staged.together || []).some((p) => p.includes(k));
+                const picking = pairPick === k;
+                return (
+                  <button
+                    key={k} type="button" aria-pressed={linked} onClick={() => pickPair(k)}
+                    className={`min-h-[36px] rounded-lg border px-2.5 text-[13.5px] font-semibold transition-colors
+                      ${picking ? 'border-ink ring-2 ring-ink' : linked ? TONE[k].soft : 'border-line bg-surface hover:bg-surface2'}`}
+                  >
+                    {TONE[k].name}{linked && <span aria-hidden className="ml-1">🔗</span>}
+                  </button>
+                );
+              })}
+            </div>
+            {pairPick && <p className="mt-1.5 text-[12.5px] text-muted">Now tap a second parameter to link with {TONE[pairPick].name}.</p>}
+          </div>
         )}
       </div>
     </details>
