@@ -11,12 +11,18 @@ A two-way communication aid between a **signer** and a **hearing person**.
 - **One conversation transcript** holds both directions, and any message can be replayed.
 
 > ## ⚠️ Data accuracy — please read
-> **The sign data in this repository is a draft scaffold, not verified ASL.** The handshapes, movements, locations and
-> non-manual markers come from a prototype and exist to demonstrate the interaction model. Every row in every vocabulary
-> table has a `needs_review` flag that defaults to `true`, and the UI shows a "Draft sign data" notice.
-> **Do not rely on this for medical, legal or other important communication until an ASL-fluent reviewer has checked the
-> data against a real reference** and flipped the flag. Sentence-type → expression rules (question = raised brows,
-> negation = headshake, …) live in one table, `client/src/lib/nonManual.js`, so they are easy to correct.
+> **2,310 American Sign Language signs, every one traceable to a source.** 2,299 take their handshapes, hands used,
+> movement shape and repetition, start/end locations and handshape change from **ASL-LEX 2.0** (a published lexical
+> database of ASL), and `npm run seed:validate -w server` re-derives each of them from its ASL-LEX row and fails on any
+> mismatch. 11 very common signs ASL-LEX lacks are **authored** from standard ASL descriptions and labelled as such in
+> the UI. There are no placeholder or invented signs: a word with no sign is fingerspelled (names, numbers) or shown as
+> unsigned. See [`server/src/db/VOCABULARY_REPORT.md`](server/src/db/VOCABULARY_REPORT.md) for the full verification
+> report, everyday-word coverage (97% of a 433-word core list) and known limits.
+>
+> **Still not reviewed by a fluent signer.** ASL-LEX does not code movement direction, palm orientation or facial
+> grammar, so those are approximated, and every row keeps `needs_review = true`. Do not rely on this for medical, legal
+> or other important communication until a fluent (ideally Deaf) ASL user has reviewed it. Sentence-type → expression
+> rules (question = raised brows, negation = headshake, …) live in one table, `client/src/lib/nonManual.js`.
 
 ## Quick start
 
@@ -28,7 +34,7 @@ npm run dev          # API on :3001, web app on http://localhost:5173
 ```
 
 That's it — no database to install. With no `DATABASE_URL`, the server uses **PGlite** (real Postgres compiled to
-WASM, running in-process, persisted in `server/data/pgdata`). It creates the schema and seeds the draft vocabulary on first start.
+WASM, running in-process, persisted in `server/data/pgdata`). It creates the schema and seeds the vocabulary on first start, and upgrades it automatically when the shipped data changes.
 
 Production:
 
@@ -37,28 +43,63 @@ npm run build        # builds client/dist
 npm start            # Express serves the API and the built client on one port
 ```
 
+### Accounts, learning and the admin dashboard
+
+The translator needs no account. Learners create one to use the **learning module**: a course of short
+lessons built from the verified everyday vocabulary, server-graded tests (watch a sign and name it, find
+the sign for a word, pick the handshape) with instant feedback, spaced-repetition review, a progress
+report (with CSV export) and a feedback page — including "report a problem" on any sign, which feeds
+the admin review queue.
+
+Create the first administrator (or set `ADMIN_EMAIL` / `ADMIN_PASSWORD` in `.env`):
+
+```bash
+npm run admin:create -w server -- you@example.com "a-strong-password" "Your Name"
+```
+
+Everyone signs in at `/login`; administrators land on `/admin`, which covers: an overview (activity,
+most-missed and most-reported signs, learner report), **Signs** (create / edit every field and step with
+a live preview, mark reviewed, delete — or build a sign on the signer and choose "Save as new sign"),
+**Lessons** (create, edit, reorder, publish, choose signs), **Feedback** (reply, set status), **Users**
+(create, change role, disable, reset password, delete), **Site settings** (name, tagline, announcement
+banner, registration, learning and feedback switches, pass mark, test length) and an **Activity log**
+of every admin action. Safety rails: you cannot demote or delete yourself, and there is always at
+least one active administrator.
+
+Security: passwords are scrypt-hashed; sessions are random tokens in an HttpOnly, SameSite=Lax cookie
+(only a SHA-256 of the token is stored; `Secure` in production); state-changing requests need an
+`X-Requested-With` header (CSRF); sign-in and sign-up are rate-limited; test answer keys never leave the
+server. Admin-created and admin-edited signs survive vocabulary upgrades, and seed signs an admin
+deletes stay deleted.
+
 ### Using a real Postgres / Supabase
 
 ```bash
 cp .env.example .env
 # DATABASE_URL=postgres://user:password@host:5432/signsense
 # DATABASE_SSL=true      # for hosted Postgres that requires TLS (e.g. Supabase)
-npm run seed             # creates tables and loads the draft vocabulary if empty
+npm run seed             # creates tables and loads (or upgrades) the vocabulary
 ```
 
-The schema (`server/src/db/schema.sql`) is plain Postgres and idempotent. Seeding only runs when the `gestures` table is
-empty, so edits made directly in the database are never overwritten on restart. `npm run seed:reset` re-applies the seed
-over existing rows.
+The schema (`server/src/db/schema.sql`) is plain Postgres and idempotent. A routine restart never touches the data.
+When the shipped seed changes, the next start upgrades the database: rows still exactly as last seeded are updated,
+dropped signs are removed, and any row edited directly in the database since seeding (detected by its stored
+fingerprint) is kept untouched and reported. `npm run seed:reset` overwrites everything with the seed.
+
+```bash
+npm run seed:validate -w server   # structure + cross-verification of every ASL-LEX sign against its source row
+npm run seed:report -w server     # regenerate server/src/db/VOCABULARY_REPORT.md
+```
 
 ### Adding vocabulary
 
-Vocabulary is data, not code: add rows, no redeploy. Example — a new sign with keywords:
+Vocabulary is data, not code: add rows, no redeploy. Use the ASL-LEX handshape (`HX_…`), movement (`MX_…`) and location ids, mark the row's `source`, and have a fluent signer check it. Template:
 
 ```sql
-insert into gestures (gloss, meaning, pos, english) values ('HUNGRY', 'Feeling the need to eat', 'adj', 'hungry') returning id;
-insert into gesture_steps (gesture_id, step_order, expression_id, hand_right_id, location_id, movement_right_id)
-  values (<id>, 0, 'E01', 'H03', 'L01', 'M01');
-insert into gesture_keywords (gesture_id, keyword, weight) values (<id>, 'hungry', 1), (<id>, 'starving', 0.6);
+insert into gestures (gloss, meaning, pos, english, source) values ('<GLOSS>', '<meaning>', 'noun', '<word>', 'authored') returning id;
+insert into gesture_steps (gesture_id, step_order, hand_right_id, hand_left_id, location_id, movement_right_id)
+  values (<id>, 0, '<HX_… handshape>', null, '<location id>', '<MX_… movement>');
+insert into gesture_keywords (gesture_id, keyword, weight) values (<id>, '<word>', 1);
 ```
 
 ## Optional AI tiers (all off by default)
@@ -85,7 +126,16 @@ server/src
   routes/     vocabulary (parameters, gestures) · ai (sentence, concepts) · stt
 client/src
   lib/
-    playSignForm.js    THE playback sequencer — every playback (A, B, replay, previews) goes through it
+    playSignForm.js    THE playback sequencer — every playback (A, B, replay, previews) goes through it;
+                       buildTimeline() lays a performance out as frames for stepping / scrubbing
+    clock.js           pausable, speed-scaled clock (slow practice without changing the sequence)
+    rig/               the signer's skeleton — pure and unit-tested:
+      skeleton.js        proportions, joint limits, the ONE coordinate/handedness convention
+      ik.js              two-bone IK with an elbow pole vector + shoulder lift; hand placed by FK from the wrist
+      solveFigure.js     collision correction (hands vs face unless the sign is AT the head; hands vs each other
+                         unless joined) and back-to-front draw order
+      face.js            expressions as numeric face parameters, so the face eases between them
+      draw.js            tapered-limb path helpers
     resolveHands.js    two-palm handshapes force both hands, enforced on every hand-read path
     steps.js pose.js   step model {E,HD,L,H:{right,left},M:{right,left}} and pose → animation targets
     nonManual.js       sentence type → expression + head marker
@@ -93,10 +143,32 @@ client/src
     tiered.js          the tiered-adapter pattern
     sentenceAssembler/ speechToGloss/ stt/
   hooks/      useComposer · useStagePlayer · useAnimatedPose · useReverseAssembler · useSpeechToText · …
-  components/ SignerDummy (parametric SVG figure) · Stage · StepsBar · Suggestions · SentenceBuilder · Conversation · …
+  components/ SignerDummy (the avatar: animation hook -> rig -> SVG, plus body-part hit-areas) · avatar/ (Body, Head, Hand, Guides)
+              Stage (avatar + PartInspector + PlaybackBar) · QueryBuilder (StepsBar + Precise controls) · Suggestions
+              SentenceBuilder · Conversation · …
+```
+
+Workspace layout (≥1180px; stacks into one column below, avatar first):
+
+```
+ Suggestions   |        Signer (avatar)        | Conversation
+ Query builder              |            Sentence builder
 ```
 
 Design choices worth knowing:
+
+- **The avatar is a solved skeleton, not a drawing per pose.** Every frame, the animated hand targets go through
+  collision correction and two-bone IK (lib/rig); arms, wrists and hands are drawn from the solved joints, so the hand
+  can never detach and the elbow always bends outward within anatomical limits. It is a 2.5D SVG rig rather than a
+  WebGL model: it renders identically in the 30+ suggestion thumbnails, in jsdom tests and on low-end laptops, needs
+  no 3D asset licence, and the sign data (2D anchors in a 240×300 space) maps onto it one-to-one. Palm orientation
+  is not in the data, so it is not invented.
+- **Every body part is a control.** Tap the face (expressions), hair (head movement), a hand (handshapes), an arm
+  (movements) or the body (locations); the options open in the inspector beside the figure, never over it.
+  Drag a hand or the face for movement. All of it is keyboard-operable.
+- **Playback for learning**: pause / resume, step and word stepping, scrubbing, replay, 0.25×–1.25× speed (sign time,
+  so motion and timing scale together), three camera framings, and a "Paths" overlay that draws the skeleton and each
+  movement's path with an arrow at its end point. Signs with unreviewed data say so while they play.
 
 - **Five phonological parameters**: expression, handshape, movement, head, and **location** (new). MOTHER and FATHER share
   everything except location (chin vs forehead), which is why location is a first-class, searchable parameter.
@@ -116,9 +188,11 @@ npm test     # client (Vitest, incl. a full-app integration test on the real see
 
 ## Known limitations / not built yet
 
-- Vocabulary is 16 draft signs. Growing and verifying it (with a reviewer, ideally a Deaf ASL user) is the main next step.
+- Every sign is source-checked against ASL-LEX (or labelled authored) but none is reviewed by a fluent signer yet; that review is the main next step. 13 core everyday words still have no sign (listed in the vocabulary report).
 - Fingerspelling, numbers, regional variation and other sign languages are not modelled.
-- Palm orientation and two-hand relative position beyond "joined / independent" are not modelled.
+- Palm orientation and two-hand relative position beyond "joined / independent" are not modelled; the avatar keeps
+  palms facing the viewer rather than guessing. Movements use the shared stroke / tap / shake / orbit primitives in
+  `pose.js` driven by each sign's own direction data — they are approximations until per-sign motion data is reviewed.
 - Speech → sign keeps English word order; AI reordering into topic-comment gloss order is a possible refinement.
 - There is no admin UI — vocabulary is edited in the database.
 - Recognition quality depends on the browser's engine; the optional server tier exists for browsers without one.

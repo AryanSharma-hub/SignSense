@@ -38,7 +38,7 @@ export async function speechToGloss(transcript, { index, vocab, useAi = false, a
       return { gloss: built.gloss, gestureId: null, signForm: built.signForm, via: m.via, score: m.score, source: m.source, needsReview: false, spelled: true };
     }
     const g = index.gestureById.get(m.gestureId);
-    return { gloss: g.gloss, gestureId: g.id, signForm: g.signForm, via: m.via, score: m.score, source: m.source, needsReview: !!g.needsReview };
+    return { gloss: g.gloss, gestureId: g.id, signForm: g.signForm, via: m.via, score: m.score, source: m.source, needsReview: !!g.needsReview, provenance: g.source ?? null };
   });
   return {
     transcript: clean, sentenceType, marker, words, unmatched,

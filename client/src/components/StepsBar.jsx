@@ -43,11 +43,11 @@ export function StepsBar({ composer, vocab }) {
   const editing = editingIndex != null;
 
   return (
-    <section className="panel p-4" aria-label="Sign steps">
+    <section className="panel p-3.5" aria-label="Sign steps">
       <div className="mb-3 flex items-center justify-between gap-2">
         <div>
-          <h2 className="font-display text-[18px] font-semibold tracking-tight">Your sign, step by step</h2>
-          <p className="text-[13.5px] text-muted">Each step is one moment: everything in it happens together.</p>
+          <h2 className="font-display text-[18px] font-semibold tracking-tight">Query builder</h2>
+          <p className="text-[13.5px] text-muted">Your sign, step by step. Each step is one moment: everything in it happens together.</p>
         </div>
         {(steps.length > 0 || hasStaged) && (
           <button type="button" className="btn btn-quiet !min-h-[38px] !px-2.5 text-[14px]" onClick={() => dispatch({ type: 'clearAll' })}><Icon name="trash" size={16} /> Clear</button>
@@ -60,7 +60,7 @@ export function StepsBar({ composer, vocab }) {
             key={i} draggable
             onDragStart={() => setDragFrom(i)} onDragOver={(e) => e.preventDefault()}
             onDrop={() => { if (dragFrom != null && dragFrom !== i) dispatch({ type: 'moveStep', from: dragFrom, to: i }); setDragFrom(null); }}
-            className={`w-[188px] shrink-0 rounded-xl border bg-surface2 p-2.5 ${editingIndex === i ? 'border-ink ring-1 ring-ink' : 'border-line'}`}
+            className={`w-[178px] shrink-0 rounded-xl border bg-surface2 p-2.5 ${editingIndex === i ? 'border-ink ring-1 ring-ink' : 'border-line'}`}
           >
             <div className="mb-1.5 flex items-center justify-between">
               <span className="text-[13px] font-bold text-muted">Step {i + 1}</span>
@@ -77,9 +77,9 @@ export function StepsBar({ composer, vocab }) {
           </li>
         ))}
 
-        <li className="w-[210px] shrink-0 rounded-xl border-2 border-dashed border-line p-2.5">
+        <li className="w-[220px] shrink-0 rounded-xl border-2 border-dashed border-hand/40 bg-hand/[0.04] p-2.5">
           <div className="mb-1.5 text-[13px] font-bold text-muted">{editing ? `Editing step ${editingIndex + 1}` : `Step ${steps.length + 1}`}</div>
-          {hasStaged ? <StepBadges step={staged} vocab={vocab} /> : <p className="text-[13.5px] leading-snug text-muted">Shape the hand, set movement, face and head on the signer.</p>}
+          {hasStaged ? <StepBadges step={staged} vocab={vocab} /> : <p className="text-[13.5px] leading-snug text-muted">Tap a body part on the signer to set it, then add the step.</p>}
           <div className="mt-2.5 flex gap-2">
             <button type="button" className="btn btn-primary !min-h-[40px] flex-1 !px-2 text-[14px]" disabled={!hasStaged} onClick={() => dispatch({ type: 'commit' })}>{editing ? 'Update step' : 'Add step'}</button>
             {hasStaged && <button type="button" className="btn !min-h-[40px] !px-2.5 text-[14px]" onClick={() => dispatch({ type: 'clearStaged' })} aria-label="Discard this step"><Icon name="x" size={16} /></button>}

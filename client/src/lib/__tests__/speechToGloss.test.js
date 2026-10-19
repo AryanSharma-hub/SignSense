@@ -9,15 +9,17 @@ const glosses = (a) => a.words.map((w) => w.gloss);
 describe('speech -> gloss (deterministic tier)', () => {
   it('paraphrases both surface WANT + WATER', async () => {
     expect(glosses(await run("I'd like some water"))).toEqual(['I', 'WANT', 'WATER']);
-    expect(glosses(await run('give me water'))).toEqual(['WANT', 'WATER']);
+    // GIVE is a directional verb: "give me" is GIVE moving toward the signer, not GIVE + ME
+    expect(glosses(await run('give me water'))).toEqual(['GIVE', 'WATER']);
     expect(glosses(await run('Can I have some water?'))).toEqual(['WANT', 'WATER']);
   });
 
   it('matches phrases and inflections', async () => {
     expect((await run('thank you so much')).words[0].gloss).toBe('THANK YOU');
-    expect(glosses(await run('She was eating'))).toEqual(['SHE', 'EAT']); // "she" is now a sign in the expanded vocabulary
-    expect(glosses(await run('My mom needs help'))).toEqual(['MY', 'MOTHER', 'WANT', 'HELP']); // "my" is now a real ASL-LEX sign too
-    expect(glosses(await run('my dad is hungry'))).toEqual(['MY', 'FATHER', 'EAT']);
+    expect(glosses(await run('She was eating'))).toEqual(['HE/SHE', 'EAT']); // ASL's third-person point has no gender
+    // NEED and HUNGRY are their own ASL signs, not WANT / EAT
+    expect(glosses(await run('My mom needs help'))).toEqual(['MY', 'MOTHER', 'NEED', 'HELP']);
+    expect(glosses(await run('my dad is hungry'))).toEqual(['MY', 'FATHER', 'HUNGRY']);
   });
 
   it('uses fuzzy matching only as a fallback and not for short words', async () => {
@@ -32,18 +34,21 @@ describe('speech -> gloss (deterministic tier)', () => {
     expect(a.words[0].via).toBe('exact');
   });
 
+  it('signs everyday words that used to be missing', async () => {
+    expect(glosses(await run('where is the bathroom'))).toEqual(['WHERE', 'BATHROOM']);
+    expect(glosses(await run('I want a sandwich'))).toEqual(['I', 'WANT', 'SANDWICH']);
+    expect(glosses(await run('can you sign that again'))).toEqual(['YOU', 'SIGN', 'AGAIN']);
+  });
+
   it('flags unmatched words explicitly instead of dropping them', async () => {
-    const a = await run('where is the bathroom');
-    expect(a.words).toEqual([]);
-    expect(a.unmatched.map((u) => u.text)).toEqual(['where', 'bathroom']);
-    const b = await run('I want a sandwich');
+    const b = await run('I want a quinoa');
     expect(glosses(b)).toEqual(['I', 'WANT']);
-    expect(b.unmatched.map((u) => u.text)).toEqual(['sandwich']);
+    expect(b.unmatched.map((u) => u.text)).toEqual(['quinoa']);
     // annotated transcript keeps every word
     const words = b.parts.filter((p) => p.type === 'word');
-    expect(words.map((p) => p.text)).toEqual(['I', 'want', 'a', 'sandwich']);
+    expect(words.map((p) => p.text)).toEqual(['I', 'want', 'a', 'quinoa']);
     expect(words.find((p) => p.text === 'a').role).toBe('function');
-    expect(words.find((p) => p.text === 'sandwich').role).toBe('unmatched');
+    expect(words.find((p) => p.text === 'quinoa').role).toBe('unmatched');
   });
 
   it('collapses consecutive duplicates', async () => {
@@ -65,15 +70,22 @@ describe('speech -> gloss (deterministic tier)', () => {
   });
 
   it('does not fingerspell an ordinary capitalized sentence-initial word', async () => {
-    const a = await run('Where is the bathroom');
-    expect(a.words).toEqual([]);
-    expect(a.unmatched.map((u) => u.text)).toEqual(['Where', 'bathroom']);
+    const a = await run('Where is the gazebo');
+    expect(glosses(a)).toEqual(['WHERE']);
+    expect(a.unmatched.map((u) => u.text)).toEqual(['gazebo']);
+  });
+
+  it('fingerspells number words that have no sign of their own as digits', async () => {
+    const a = await run('I have twelve');
+    const twelve = a.words.find((w) => w.gloss === '12');
+    expect(twelve.spelled).toBe(true);
+    expect(glosses(await run('five'))).toEqual(['FIVE']); // a real sign wins over spelling
   });
 
   it('fingerspells a lone or sentence-initial proper noun, not just mid-sentence ones', async () => {
     expect(glosses(await run('Sarah'))).toEqual(['SARAH']);
     expect(glosses(await run('My name is Sarah'))).toEqual(['MY', 'NAME', 'SARAH']); // "my"/"name" are real signs; "is" stays silent
-    expect(glosses(await run('My mom needs help'))).toEqual(['MY', 'MOTHER', 'WANT', 'HELP']); // "my" signs, not spelled
+    expect(glosses(await run('My mom needs help'))).toEqual(['MY', 'MOTHER', 'NEED', 'HELP']); // "my" signs, not spelled
   });
 
   it('can be turned off', async () => {
@@ -107,11 +119,11 @@ describe('sentence type -> non-manual marker', () => {
 
 describe('AI tier + fallback (same interface)', () => {
   it('maps AI concepts through the shared matcher and reports unmatched concepts', async () => {
-    const api = { post: async () => ({ concepts: ['want', 'water', 'bathroom'] }) };
+    const api = { post: async () => ({ concepts: ['want', 'water', 'quinoa'] }) };
     const a = await run('whatever', { useAi: true, api });
     expect(a.tier).toBe('ai');
     expect(glosses(a)).toEqual(['WANT', 'WATER']);
-    expect(a.unmatched).toEqual([{ text: 'bathroom' }]);
+    expect(a.unmatched).toEqual([{ text: 'quinoa' }]);
   });
   it('falls back to the deterministic tier when the AI tier fails', async () => {
     const api = { post: async () => { throw new Error('503'); } };

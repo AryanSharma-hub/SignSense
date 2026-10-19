@@ -9,6 +9,25 @@ export const TONE = {
   L:  { name: 'Location', text: 'text-location',   soft: 'bg-location/10 border-location/35 text-location',       solid: 'bg-location text-on-accent border-location',     dot: 'bg-location' },
 };
 
+const PROVENANCE = new Set(['curated', 'asl-lex', 'authored']);
+/** Where a sign's data comes from. Words from speech carry it as `provenance`; gestures as `source`. */
+export const provenanceOf = (w) => w?.provenance ?? (PROVENANCE.has(w?.source) ? w.source : null);
+
+/** Small badge saying where a sign's data comes from, and how far it can be trusted. */
+export function SourceBadge({ sign, className = '' }) {
+  const p = provenanceOf(sign);
+  if (!p) return null;
+  const authored = p === 'authored';
+  return (
+    <span
+      title={authored
+        ? 'Not in ASL-LEX: written from standard ASL descriptions. Needs review by a fluent signer.'
+        : 'Handshape, hands, movement shape and locations from ASL-LEX 2.0, checked against it. Movement direction and palm orientation are approximate; not yet reviewed by a fluent signer.'}
+      className={`rounded-md border px-1.5 py-0.5 text-[11.5px] font-semibold ${authored ? 'border-expression/45 bg-expression/10 text-expression' : 'border-line text-muted'} ${className}`}
+    >{authored ? 'Authored' : 'ASL-LEX'}</span>
+  );
+}
+
 export function ParamChip({ k, children, title }) {
   return <span title={title} className={`inline-flex max-w-full items-center truncate rounded-md border px-1.5 py-0.5 text-[12.5px] font-semibold leading-tight ${TONE[k].soft}`}>{children}</span>;
 }
@@ -85,10 +104,31 @@ const paths = {
   sliders: 'M4 7h9M17 7h3M4 17h3M11 17h9M13 4v6M7 14v6',
   info: 'M12 8v.01M11 12h1v5h1M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z',
   trash: 'M5 7h14M9 7V5h6v2M7 7l1 12h8l1-12',
+  pause: 'M7.5 5.5h3v13h-3zM13.5 5.5h3v13h-3z',
+  skipBack: 'M17 6l-6 6 6 6M7 6v12',
+  skipFwd: 'M7 6l6 6-6 6M17 6v12',
+  route: 'M6 19.5a1.5 1.5 0 1 0 0-.01M18 4.5a1.5 1.5 0 1 0 0-.01M7.5 19h7a3.5 3.5 0 0 0 0-7h-5a3.5 3.5 0 0 1 0-7h7',
+  search: 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14ZM20 20l-4-4',
+  hand: 'M8 13V6.5a1.5 1.5 0 0 1 3 0V12M11 11V5a1.5 1.5 0 0 1 3 0v6M14 11V6.5a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-.5a5.5 5.5 0 0 1-4.6-2.5L4.5 15a1.5 1.5 0 0 1 2.4-1.8L8 14.5',
+  clock: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 7v5l3 2',
+  book: 'M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5A2.5 2.5 0 0 0 6.5 23H20M8 7h8',
+  chart: 'M4 20h16M7 16v-5M12 16V7M17 16v-8',
+  chat: 'M4 5h16v11H9l-5 4z',
+  shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z',
+  user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM4 21a8 8 0 0 1 16 0',
+  logout: 'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10',
+  check: 'M5 12.5l4.5 4.5L19 7',
+  star: 'M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z',
+  plus: 'M12 5v14M5 12h14',
+  edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',
+  flag: 'M5 21V4M5 4h11l-2 4 2 4H5',
+  download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
+  up: 'M6 15l6-6 6 6',
+  down: 'M6 9l6 6 6-6',
 };
 export function Icon({ name, size = 18, className = '' }) {
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill={name === 'stop' || name === 'play' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className}>
+    <svg viewBox="0 0 24 24" width={size} height={size} fill={name === 'stop' || name === 'play' || name === 'pause' || name === 'star-filled' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={className}>
       <path d={paths[name]} />
     </svg>
   );

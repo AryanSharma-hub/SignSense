@@ -92,3 +92,138 @@ create table if not exists gesture_keywords (
 );
 
 create index if not exists gesture_keywords_keyword_idx on gesture_keywords (keyword);
+
+-- v5: provenance for every sign, and safe seed upgrades.
+--   source        'curated' | 'asl-lex' | 'authored'  (see seedData/index.js)
+--   source_ref    ASL-LEX 2.0 sign code for curated/asl-lex signs
+--   frequency     ASL-LEX sign frequency (1-7: how familiar signers rate the sign), when known
+--   seed_checksum fingerprint of the row as last seeded; a row whose current content no
+--                 longer matches it was edited by an admin and is never overwritten by an upgrade
+alter table gestures add column if not exists source text;
+alter table gestures add column if not exists source_ref text;
+alter table gestures add column if not exists frequency real;
+alter table gestures add column if not exists seed_checksum text;
+
+create table if not exists seed_meta (
+  key    text primary key,
+  value  text not null
+);
+
+-- ============================================================================
+-- v6: accounts, learning, feedback, admin.
+-- ============================================================================
+
+-- Who created / reviewed a sign. source 'admin' = created in the admin dashboard; such rows
+-- are never removed by a seed upgrade. reviewed_* records an admin's review (needs_review=false).
+alter table gestures add column if not exists reviewed_by integer;
+alter table gestures add column if not exists reviewed_at timestamptz;
+alter table gestures add column if not exists updated_at timestamptz;
+
+-- Seed signs an admin deleted: a seed upgrade must not bring them back.
+create table if not exists deleted_signs (
+  gloss       text primary key,
+  deleted_at  timestamptz not null default now()
+);
+
+create table if not exists users (
+  id             serial primary key,
+  email          text not null unique,             -- stored lowercase
+  name           text not null,
+  password_hash  text not null,                    -- scrypt$N$r$p$salt$hash
+  role           text not null default 'user' check (role in ('user', 'admin')),
+  disabled       boolean not null default false,
+  created_at     timestamptz not null default now(),
+  last_login_at  timestamptz
+);
+
+create table if not exists sessions (
+  token_hash  text primary key,                    -- sha256 of the cookie token; the token itself is never stored
+  user_id     integer not null references users(id) on delete cascade,
+  created_at  timestamptz not null default now(),
+  expires_at  timestamptz not null
+);
+create index if not exists sessions_user_idx on sessions (user_id);
+
+create table if not exists lessons (
+  id           serial primary key,
+  slug         text not null unique,
+  unit         text not null,                      -- grouping shown on the Learn page
+  title        text not null,
+  description  text not null default '',
+  level        text not null default 'beginner',
+  position     integer not null default 0,
+  published    boolean not null default true
+);
+
+create table if not exists lesson_signs (
+  lesson_id   integer not null references lessons(id) on delete cascade,
+  gesture_id  integer not null references gestures(id) on delete cascade,
+  position    integer not null default 0,
+  primary key (lesson_id, gesture_id)
+);
+
+-- Spaced repetition (Leitner boxes 0-5) per user and sign.
+create table if not exists sign_progress (
+  user_id         integer not null references users(id) on delete cascade,
+  gesture_id      integer not null references gestures(id) on delete cascade,
+  box             smallint not null default 0,
+  correct         integer not null default 0,
+  wrong           integer not null default 0,
+  first_seen_at   timestamptz not null default now(),
+  last_seen_at    timestamptz not null default now(),
+  next_review_at  timestamptz not null default now(),
+  primary key (user_id, gesture_id)
+);
+
+create table if not exists lesson_progress (
+  user_id       integer not null references users(id) on delete cascade,
+  lesson_id     integer not null references lessons(id) on delete cascade,
+  started_at    timestamptz not null default now(),
+  completed_at  timestamptz,                      -- first test passed (>= 80%)
+  best_score    real,                             -- 0..1
+  primary key (user_id, lesson_id)
+);
+
+-- A test: questions are generated and graded on the server; `questions` holds the answer key.
+create table if not exists test_attempts (
+  id           serial primary key,
+  user_id      integer not null references users(id) on delete cascade,
+  lesson_id    integer references lessons(id) on delete set null,
+  kind         text not null check (kind in ('lesson', 'review')),
+  questions    jsonb not null,
+  answers      jsonb,
+  score        integer,
+  total        integer not null,
+  created_at   timestamptz not null default now(),
+  finished_at  timestamptz
+);
+create index if not exists test_attempts_user_idx on test_attempts (user_id, created_at);
+
+create table if not exists feedback (
+  id           serial primary key,
+  user_id      integer references users(id) on delete set null,
+  gesture_id   integer references gestures(id) on delete set null,
+  gloss        text,                              -- kept even if the sign is later deleted
+  category     text not null check (category in ('sign-accuracy', 'lesson', 'bug', 'suggestion', 'other')),
+  rating       smallint check (rating between 1 and 5),
+  message      text not null,
+  page         text,
+  status       text not null default 'new' check (status in ('new', 'reviewing', 'resolved')),
+  admin_reply  text,
+  replied_at   timestamptz,
+  created_at   timestamptz not null default now()
+);
+
+create table if not exists site_settings (
+  key    text primary key,
+  value  jsonb not null
+);
+
+create table if not exists audit_log (
+  id          serial primary key,
+  user_id     integer references users(id) on delete set null,
+  action      text not null,
+  target      text,
+  details     jsonb,
+  created_at  timestamptz not null default now()
+);

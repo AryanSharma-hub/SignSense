@@ -42,6 +42,8 @@ export async function getGestures(db) {
   return g.rows.map((r) => ({
     id: r.id, gloss: r.gloss, meaning: r.meaning, pos: r.pos, english: r.english,
     needsReview: r.needs_review,
+    source: r.source ?? null, sourceRef: r.source_ref ?? null,
+    frequency: r.frequency == null ? null : Math.round(r.frequency * 1000) / 1000,
     signForm: steps.get(r.id) || [],
     keywords: kws.get(r.id) || [],
   }));
@@ -52,3 +54,18 @@ export async function getKeywordVocabulary(db) {
   const gestures = await getGestures(db);
   return gestures.map((g) => ({ gloss: g.gloss, keywords: g.keywords.map((k) => k.keyword) }));
 }
+
+/**
+ * The full gesture list, cached per database until something changes it. Every write
+ * path (seeding, admin edits) must call invalidateGestures(db).
+ */
+const gestureCache = new WeakMap();
+export function getGesturesCached(db) {
+  if (!gestureCache.has(db)) {
+    const p = getGestures(db);
+    gestureCache.set(db, p);
+    p.catch(() => gestureCache.delete(db));
+  }
+  return gestureCache.get(db);
+}
+export function invalidateGestures(db) { gestureCache.delete(db); }

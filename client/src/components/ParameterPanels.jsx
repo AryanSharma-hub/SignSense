@@ -6,16 +6,20 @@ const GRID = [['NW', 'N', 'NE'], ['W', 'CENTER', 'E'], ['SW', 'S', 'SE']];
 const ARROW = { N: '↑', NE: '↗', E: '→', SE: '↘', S: '↓', SW: '↙', W: '←', NW: '↖', CENTER: '•' };
 
 /** Abstract compass picker for movement (the accessible, non-drag way to set it). */
-function MovePad({ vocab, selected, onPick }) {
-  const byDir = (d) => vocab.movements.find((m) => m.dir === d);
-  const patterns = vocab.movements.filter((m) => m.dir === 'PATTERN');
+export function MovePad({ vocab, selected, onPick }) {
+  // The compass and patterns are the app's direction primitives (for authoring by drag);
+  // ASL-LEX's coded movement types (shape × repetition) are listed separately below.
+  const isLex = (m) => String(m.id).startsWith('MX_');
+  const byDir = (d) => vocab.movements.find((m) => m.dir === d && !isLex(m));
+  const patterns = vocab.movements.filter((m) => m.dir === 'PATTERN' && !isLex(m));
+  const lexTypes = vocab.movements.filter(isLex);
   const cell = (m, d) => {
     if (!m) return <span key={d} />;
     const on = selected.includes(m.id);
     return (
       <button
         key={m.id} type="button" aria-pressed={on} onClick={() => onPick(m.id)}
-        className={`flex min-h-[64px] flex-col items-center justify-center rounded-xl border px-1.5 py-1.5 text-center text-[13px] font-semibold leading-tight
+        className={`flex min-h-[58px] flex-col items-center justify-center rounded-xl border px-1 py-1.5 text-center text-[12.5px] font-semibold leading-tight
           ${on ? TONE.M.solid : 'border-line bg-surface hover:bg-surface2'}`}
       >
         <span className="text-[20px] leading-none" aria-hidden>{ARROW[d]}</span>
@@ -25,7 +29,7 @@ function MovePad({ vocab, selected, onPick }) {
   };
   return (
     <div>
-      <div className="grid max-w-[420px] grid-cols-3 gap-2">{GRID.flat().map((d) => cell(byDir(d), d))}</div>
+      <div className="grid max-w-[420px] grid-cols-3 gap-1.5">{GRID.flat().map((d) => cell(byDir(d), d))}</div>
       {patterns.length > 0 && (
         <>
           <p className="field-label mb-1.5 mt-3">Patterns</p>
@@ -35,6 +39,20 @@ function MovePad({ vocab, selected, onPick }) {
               return (
                 <button key={m.id} type="button" aria-pressed={on} onClick={() => onPick(m.id)}
                   className={`min-h-[44px] rounded-xl border px-3 text-[14px] font-semibold ${on ? TONE.M.solid : 'border-line bg-surface hover:bg-surface2'}`}>{m.label}</button>
+              );
+            })}
+          </div>
+        </>
+      )}
+      {lexTypes.length > 0 && (
+        <>
+          <p className="field-label mb-1.5 mt-3">ASL movement types</p>
+          <div className="flex flex-wrap gap-1.5">
+            {lexTypes.map((m) => {
+              const on = selected.includes(m.id);
+              return (
+                <button key={m.id} type="button" aria-pressed={on} onClick={() => onPick(m.id)}
+                  className={`min-h-[38px] rounded-xl border px-2.5 text-[13px] font-semibold ${on ? TONE.M.solid : 'border-line bg-surface hover:bg-surface2'}`}>{m.label}</button>
               );
             })}
           </div>

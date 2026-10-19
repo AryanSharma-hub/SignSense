@@ -40,6 +40,8 @@ const REUSE = {
   Neutral: 'L01', Forehead: 'L02', Mouth: 'L03', Chin: 'L04', CheekNose: 'L05',
   Shoulder: 'L06', Waist: 'L07', Neck: 'L11', Hips: 'L14', Clavicle: 'L12',
   TorsoTop: 'L12', TorsoMid: 'L01', TorsoBottom: 'L13',
+  // Second-location-only codes with no anchor of their own: nearest coded region.
+  OtherAway: 'LX_OTHER', ForearmRadial: 'LX_FOREARM_FRONT',
 };
 
 const BY_CODE = new Map(NEW_LOCATIONS.map((l) => [l.code, l.id]));

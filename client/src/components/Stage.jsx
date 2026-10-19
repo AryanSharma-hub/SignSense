@@ -1,24 +1,35 @@
 import { useState } from 'react';
-import { SignerDummy } from './SignerDummy.jsx';
-import { OptionGrid, Icon, Segmented } from './ui.jsx';
+import { SignerDummy, FRAMINGS } from './SignerDummy.jsx';
+import { PartInspector, NowSigning } from './PartInspector.jsx';
+import { PlaybackBar } from './PlaybackBar.jsx';
+import { Icon } from './ui.jsx';
 import { describePose } from '../lib/pose.js';
-import { describeMarker } from '../lib/nonManual.js';
 import { movementForDrag, headForDrag } from '../lib/direct.js';
-import { expressiveHands } from '../lib/vocabulary.js';
+
+const usePref = (key, initial) => {
+  const [v, setV] = useState(() => { try { return localStorage.getItem(key) ?? initial; } catch { return initial; } });
+  const set = (x) => { setV(x); try { localStorage.setItem(key, x); } catch { /* ignore */ } };
+  return [v, set];
+};
 
 /**
  * The signer stage — the primary interactive surface for Direction A and the shared
- * performer for Direction B. Direct manipulation: drag a hand to snap a movement, drag the
- * head for head movement, tap a hand for handshapes, tap the face for expressions.
+ * performer for Direction B. Every body part is a target: tap it and its options open in
+ * the inspector beside the figure (never over it); drag a hand for a movement or the face
+ * for a head movement. Below sits the transport: act out, pause, step, scrub, speed.
  */
 export function Stage({ composer, vocab, player }) {
   const { pose, activeHand, staged, arraySteps, dispatch } = composer;
-  const [picker, setPicker] = useState(null); // 'E' | 'H' | 'L' | null
+  const [part, setPart] = useState(null); // { k, side? } | null
+  const [framing, setFraming] = usePref('signsense:framing', 'upper');
+  const [guides, setGuides] = usePref('signsense:guides', 'off');
   const shown = player.pose ?? pose;
   const performing = player.performing;
 
-  const onHandTap = (side) => { dispatch({ type: 'setActiveHand', side }); setPicker('H'); };
-  const onHeadTap = () => setPicker('E');
+  const selectPart = (p) => {
+    setPart(p);
+    if (p?.side) dispatch({ type: 'setActiveHand', side: p.side });
+  };
   const onDragPreview = (kind, side, rel) => {
     if (kind === 'hand') { const m = movementForDrag(vocab, rel, side); return m ? `${side === 'right' ? 'Right' : 'Left'} · ${m.label}` : null; }
     return headForDrag(vocab, rel)?.label ?? null;
@@ -27,82 +38,65 @@ export function Stage({ composer, vocab, player }) {
     if (kind === 'hand') {
       dispatch({ type: 'setActiveHand', side });
       const m = movementForDrag(vocab, rel, side);
-      if (m) dispatch({ type: 'setM', id: m.id, side, set: true });
+      if (m) { dispatch({ type: 'setM', id: m.id, side, set: true }); setPart({ k: 'M', side }); }
     } else {
       const h = headForDrag(vocab, rel);
-      if (h) dispatch({ type: 'setHD', id: h.id, set: true });
+      if (h) { dispatch({ type: 'setHD', id: h.id, set: true }); setPart({ k: 'HD' }); }
     }
   };
 
   const caption = performing
-    ? `Signing ${player.label || '…'}${player.count > 1 ? ` (${player.word + 1} of ${player.count})` : ''}`
+    ? `Signing ${player.label || '…'}${player.count > 1 ? ` (${player.word + 1} of ${player.count})` : ''}${player.paused ? ' — paused' : ''}`
     : describePose(pose, vocab);
   const canAct = arraySteps.length > 0 && !performing;
+  const showGuides = guides === 'on';
 
   return (
-    <section aria-label="Signer" className="panel relative overflow-hidden p-3 sm:p-4">
-      <div className="mb-1 flex items-center justify-between gap-2">
+    <section aria-label="Signer" className="panel stage-panel flex h-full min-h-0 flex-col overflow-hidden">
+      <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-4 py-2.5">
         <h2 className="font-display text-[18px] font-semibold tracking-tight">Signer</h2>
-        {performing
-          ? <button type="button" className="btn btn-quiet !min-h-[36px] !px-2.5 text-[14px]" onClick={player.cancel}><Icon name="stop" size={14} /> Stop</button>
-          : <button type="button" className="btn btn-quiet !min-h-[36px] !px-2.5 text-[14px]" disabled={!canAct} onClick={() => player.perform([{ gloss: 'your sign', signForm: arraySteps }], { label: 'your sign', source: 'A' })}><Icon name="play" size={14} /> Act out</button>}
-      </div>
-
-      <div className="mx-auto max-w-[340px] rounded-xl2 bg-gradient-to-b from-surface2 to-surface">
-        <SignerDummy
-          pose={shown} vocab={vocab} interactive={!performing}
-          onHandTap={onHandTap} onHeadTap={onHeadTap} onDragPreview={onDragPreview} onDragCommit={onDragCommit}
-          locationTargets={picker === 'L' && !performing ? { selected: staged.L, onPick: (id) => dispatch({ type: 'setL', id }) } : null}
-        />
-      </div>
-
-      <p className="mt-1 min-h-[2.75rem] text-center text-[14px] leading-snug text-muted" aria-live="polite">
-        {caption || 'Drag a hand to set its movement. Tap a hand or the face to choose a shape or expression.'}
-      </p>
-
-      <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
-        <Segmented
-          label="Which hand to edit" value={activeHand} onChange={(side) => dispatch({ type: 'setActiveHand', side })}
-          options={[{ value: 'left', label: 'Left hand' }, { value: 'right', label: 'Right hand' }]}
-        />
-      </div>
-      <div className="mt-2 flex flex-wrap justify-center gap-2">
-        {[['E', 'Face'], ['H', 'Handshape'], ['L', 'Location']].map(([k, label]) => (
-          <button
-            key={k} type="button" aria-pressed={picker === k} onClick={() => setPicker(picker === k ? null : k)}
-            className={`btn !min-h-[40px] !px-3 text-[14px] ${picker === k ? 'border-ink' : ''}`}
-          >{label}</button>
-        ))}
-      </div>
-
-      {picker && !performing && (
-        <div className="absolute inset-x-2 bottom-2 z-20 max-h-[68%] overflow-y-auto rounded-2xl border border-line bg-surface p-3 shadow-lift scroll-thin" role="dialog" aria-label={picker === 'E' ? 'Choose an expression' : picker === 'H' ? 'Choose a handshape' : 'Choose a location'}>
-          <div className="mb-2 flex items-center justify-between">
-            <h3 className="text-[15px] font-semibold">
-              {picker === 'E' && 'Facial expression'}
-              {picker === 'H' && `Handshape — ${activeHand === 'right' ? 'right' : 'left'} hand`}
-              {picker === 'L' && 'Where on the body'}
-            </h3>
-            <button type="button" className="btn btn-quiet !min-h-[36px] !px-2" onClick={() => setPicker(null)} aria-label="Close"><Icon name="x" /></button>
-          </div>
-          {picker === 'E' && (
-            <OptionGrid k="E" items={vocab.expressions} selected={[staged.E]} onPick={(id) => { dispatch({ type: 'setE', id }); setPicker(null); }} />
-          )}
-          {picker === 'H' && (
-            <OptionGrid k="H" hands items={expressiveHands(vocab)} selected={[staged.H[activeHand]]} onPick={(id) => { dispatch({ type: 'setH', id, side: activeHand }); setPicker(null); }} />
-          )}
-          {picker === 'L' && (
-            <>
-              <p className="mb-2 text-[13.5px] text-muted">Tap a dot on the signer, or choose here. Leave empty for the neutral chest position.</p>
-              <OptionGrid k="L" items={vocab.locations} selected={[staged.L]} onPick={(id) => dispatch({ type: 'setL', id })} />
-            </>
-          )}
+        <p className="min-w-0 flex-1 truncate text-[13.5px] text-muted" aria-live="polite" title={caption}>
+          {caption || 'Tap a body part to choose its options, or drag a hand to set its movement.'}
+        </p>
+        <div role="radiogroup" aria-label="Camera framing" className="inline-flex rounded-lg border border-line bg-surface2 p-0.5">
+          {Object.entries(FRAMINGS).map(([k, fr]) => (
+            <button
+              key={k} type="button" role="radio" aria-checked={framing === k} onClick={() => setFraming(k)}
+              className={`min-h-[30px] rounded-md px-2 text-[12.5px] font-semibold ${framing === k ? 'bg-ink text-bg' : 'text-muted hover:text-ink'}`}
+            >{fr.label}</button>
+          ))}
         </div>
-      )}
+        <button
+          type="button" aria-pressed={showGuides} onClick={() => setGuides(showGuides ? 'off' : 'on')}
+          title="Show the skeleton and movement paths"
+          className={`btn !min-h-[34px] !px-2.5 text-[13px] ${showGuides ? '!border-movement !bg-movement/15 text-movement' : ''}`}
+        ><Icon name="route" size={15} /> Paths</button>
+      </header>
 
-      {performing && describeMarker(player.marker, vocab) && (
-        <p className="text-center text-[13px] font-semibold text-muted">Face and head: {describeMarker(player.marker, vocab)}</p>
-      )}
+      <div className="stage-body min-h-0 flex-1">
+        <div className="stage-avatar relative min-h-0">
+          <div className="absolute inset-0 rounded-xl2 bg-[radial-gradient(ellipse_at_50%_35%,rgb(var(--surface2)),rgb(var(--surface))_70%)]" aria-hidden />
+          <SignerDummy
+            pose={shown} vocab={vocab} interactive={!performing} fit="contain" framing={framing}
+            guides={showGuides} speed={player.speed} paused={performing && player.paused}
+            selectedPart={performing ? null : part} editingHand={performing ? null : activeHand}
+            onPartSelect={selectPart} onDragPreview={onDragPreview} onDragCommit={onDragCommit}
+            locationTargets={part?.k === 'L' && !performing ? { selected: staged.L, onPick: (id) => dispatch({ type: 'setL', id }) } : null}
+          />
+        </div>
+        <aside className="stage-inspector min-h-0" aria-label={performing ? 'Now signing' : 'Body part options'}>
+          {performing
+            ? <NowSigning player={player} vocab={vocab} />
+            : <PartInspector composer={composer} vocab={vocab} part={part} onPart={selectPart} />}
+        </aside>
+      </div>
+
+      <div className="shrink-0 border-t border-line px-3 py-2.5">
+        <PlaybackBar
+          player={player} canAct={canAct}
+          onAct={() => player.perform([{ gloss: 'your sign', signForm: arraySteps }], { label: 'your sign', source: 'A' })}
+        />
+      </div>
     </section>
   );
 }

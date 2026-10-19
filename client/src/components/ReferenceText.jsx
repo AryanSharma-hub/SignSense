@@ -49,7 +49,7 @@ export function ReferenceText({ analysis, vocab, compact = false }) {
                 <span className="gloss">{w.gloss.split('').join('-')}</span>
               </span>
             ) : (
-              <span key={`${w.gloss}-${i}`} className="chip border-hand/35 bg-hand/10 text-hand" title={w.needsReview ? 'Draft sign data — not yet reviewed' : undefined}>
+              <span key={`${w.gloss}-${i}`} className="chip border-hand/35 bg-hand/10 text-hand" title={w.provenance === 'authored' ? 'Authored sign: not in ASL-LEX, needs review by a fluent signer' : w.needsReview ? 'From ASL-LEX 2.0: not yet reviewed by a fluent signer' : undefined}>
                 <span className="gloss">{w.gloss}</span>
               </span>
             )

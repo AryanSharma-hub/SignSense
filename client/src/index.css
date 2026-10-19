@@ -40,6 +40,24 @@
   --finger-ring: 8 145 178;
   --finger-pinky: 126 34 206;
   --finger-thumb: 190 18 122;
+  /* Avatar: skin, clothing, hair and face. Kept apart from the parameter hues. */
+  --skin: 226 178 146;
+  --skin-hi: 240 202 174;
+  --skin-shade: 198 146 114;
+  --skin-line: 140 92 68;
+  --shirt: 52 86 122;
+  --shirt-hi: 78 116 156;
+  --shirt-shade: 40 68 98;
+  --shirt-line: 28 48 72;
+  --hair: 52 38 32;
+  --hair-hi: 112 86 70;
+  --sclera: 252 252 250;
+  --iris: 86 62 44;
+  --eye: 28 26 30;
+  --lip: 170 88 84;
+  --mouth: 104 40 44;
+  /* Single-series chart mark — validated (dataviz validator) against this theme's surface. */
+  --chart-1: 0 143 126;
 }
 .dark {
   --bg: 15 19 25;
@@ -64,6 +82,22 @@
   --finger-ring: 103 232 249;
   --finger-pinky: 192 149 252;
   --finger-thumb: 244 114 182;
+  --skin: 222 172 140;
+  --skin-hi: 236 196 168;
+  --skin-shade: 186 134 104;
+  --skin-line: 110 70 52;
+  --shirt: 38 70 88;
+  --shirt-hi: 58 100 118;
+  --shirt-shade: 28 54 70;
+  --shirt-line: 14 30 40;
+  --hair: 40 30 26;
+  --hair-hi: 100 78 64;
+  --sclera: 246 246 244;
+  --iris: 80 58 42;
+  --eye: 20 18 22;
+  --lip: 164 82 78;
+  --mouth: 92 34 38;
+  --chart-1: 42 168 152;
 }
 
 @layer base {
@@ -87,6 +121,11 @@
   .btn-primary { @apply border-transparent bg-ink text-bg hover:bg-ink/85; }
   .btn-quiet { @apply border-transparent bg-transparent hover:bg-surface2; }
   .field-label { @apply text-[13px] font-semibold text-muted; }
+  .input {
+    @apply block min-h-[44px] w-full rounded-xl border border-line bg-surface px-3 text-[16px] text-ink placeholder:text-muted/70;
+  }
+  textarea.input { @apply py-2.5; }
+  select.input { @apply pr-8; }
   .gloss { @apply font-semibold tracking-wide; }
   .chip {
     @apply inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-[14px] font-semibold;
@@ -94,12 +133,15 @@
   .sr-only-live { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 }
 
-/* Cross-fading face layers + drag affordances on the signer. */
-.face-layer { transition: opacity 0.18s ease; }
-.signer-hit { cursor: grab; touch-action: none; }
-.signer-hit:active { cursor: grabbing; }
+/* Signer body-part hit-areas: invisible until hovered/focused; the selected part keeps an outline. */
+.part-hit { fill: transparent; stroke: transparent; stroke-width: 1.6; cursor: pointer; touch-action: none; transition: fill .15s, stroke .15s; }
+.part-hit:hover, .part-hit:focus-visible { fill: rgb(var(--hand) / 0.10); stroke: rgb(var(--hand) / 0.85); stroke-dasharray: 4 3; outline: none; }
+.part-hit.is-selected { fill: rgb(var(--hand) / 0.08); stroke: rgb(var(--hand)); stroke-dasharray: none; }
 .loc-dot { cursor: pointer; }
-.loc-dot:hover circle.core, .loc-dot:focus-visible circle.core { r: 6.5; }
+.loc-dot:hover circle.core, .loc-dot:focus-visible circle.core { r: 5.5; }
+
+/* Timeline scrubber in the mint accent. */
+.scrubber { accent-color: rgb(var(--hand)); height: 28px; }
 
 /* Position the mic pulse only when motion is welcome. */
 @media (prefers-reduced-motion: no-preference) {
@@ -116,30 +158,60 @@
 .scroll-thin { scrollbar-width: thin; scrollbar-color: rgb(var(--line)) transparent; }
 
 /*
- * LeetCode-style resizable layout: Dummy (stage) in the center, Query Results above Query
- * Builder on the left (results feeds the builder below it), ChatBox above Sentence Formed
- * on the right (sentence feeds up into the chat above it when said). Two draggable
- * dividers split left | center | right; one more inside each side column splits its own
- * top/bottom pair. Pane sizes are pixel values held in React state (useResizable) and
- * passed down as CSS custom properties, so the stylesheet only needs to know which
- * property each pane's size feeds — not the sizes themselves.
+ * Workspace: three columns over two rows, matching the product layout —
  *
- * Below 1360px this all collapses to one scrolling column (dividers hidden, sizes
- * ignored) — a plain, simple stacked layout. At 1360px+ the outer left/stage/right split
- * becomes a row, the whole page stops scrolling, and every pane scrolls internally.
+ *   Suggestions | Signer (avatar)        | Conversation
+ *   Query builder       | Sentence builder
+ *
+ * The avatar gets the widest, tallest cell. Column widths and the builder row height
+ * come from React state (useResizable) as CSS custom properties; dividers sit in their
+ * own thin tracks. Below 1180px everything stacks in one scrolling column, avatar first.
  */
-.app-grid { display: flex; flex-direction: column; gap: 1rem; }
-.split-col { display: flex; flex-direction: column; min-height: 0; min-width: 0; gap: 0.75rem; }
-.split-pane { min-height: 0; min-width: 0; }
-.split-pane-top { flex: 0 0 var(--pane-h, auto); overflow-y: auto; }
-.split-pane-bottom { flex: 1 1 auto; min-height: 160px; overflow-y: auto; }
-.resize-divider-x { display: none; }
+.workspace { display: flex; flex-direction: column; gap: 0.75rem; }
+.ws-suggest, .ws-convo, .ws-builder, .ws-sentence, .ws-stage { min-width: 0; min-height: 0; }
+.ws-div-left, .ws-div-right, .ws-div-bottom { display: none; }
+.ws-stage { order: -1; height: min(88dvh, 760px); }
+.ws-convo { height: min(80dvh, 640px); }
 .convo-panel { height: 100%; }
 
-@media (min-width: 1360px) {
-  .app-shell { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-  .app-grid { flex: 1 1 auto; min-height: 0; flex-direction: row; gap: 0; }
-  .split-col { flex: 0 0 var(--split-w, 380px); height: 100%; gap: 0.5rem; }
-  .area-stage { flex: 1 1 auto; min-width: 300px; min-height: 0; }
-  .resize-divider-x { display: block; }
+/* Stage internals: avatar beside the inspector when there is room, stacked otherwise. */
+.stage-panel { container-type: inline-size; container-name: stage; }
+.stage-body { display: grid; grid-template-rows: minmax(240px, 1fr) auto; gap: 0.75rem; padding: 0.75rem; overflow-y: auto; }
+.stage-avatar { min-height: 240px; }
+.stage-inspector { display: flex; flex-direction: column; }
+@container stage (min-width: 500px) {
+  .stage-body { grid-template-columns: minmax(0, 1fr) minmax(220px, 290px); grid-template-rows: minmax(0, 1fr); overflow: hidden; }
+  .stage-avatar { min-height: 0; }
+  .stage-inspector { border-left: 1px solid rgb(var(--line)); padding-left: 0.75rem; overflow-y: auto; }
 }
+
+/* Keyboard users can jump past the header. */
+.skip-link { position: absolute; left: -9999px; top: 0.5rem; z-index: 50; }
+.skip-link:focus { left: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 0.75rem; background: rgb(var(--ink)); color: rgb(var(--bg)); }
+
+@media (min-width: 1180px) {
+  .app-shell { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+  .app-shell .workspace-main { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  .workspace {
+    flex: 1 1 auto; min-height: 0; display: grid; gap: 0;
+    grid-template-columns: var(--left-w, 340px) 10px minmax(0, 1fr) minmax(0, 1fr) 10px var(--right-w, 380px);
+    grid-template-rows: minmax(0, 1fr) 10px var(--bottom-h, 300px);
+    grid-template-areas:
+      "suggest dl stage stage dr convo"
+      "hdiv hdiv hdiv hdiv hdiv hdiv"
+      "builder builder builder sentence sentence sentence";
+  }
+  .ws-suggest { grid-area: suggest; overflow-y: auto; }
+  .ws-stage { grid-area: stage; order: 0; height: auto; }
+  .ws-convo { grid-area: convo; height: auto; }
+  .ws-builder { grid-area: builder; overflow-y: auto; margin-right: 5px; }
+  .ws-sentence { grid-area: sentence; overflow-y: auto; margin-left: 5px; }
+  .ws-div-left { grid-area: dl; display: flex; justify-content: center; }
+  .ws-div-right { grid-area: dr; display: flex; justify-content: center; }
+  .ws-div-bottom { grid-area: hdiv; display: flex; flex-direction: column; justify-content: center; }
+  .ws-div-left > *, .ws-div-right > * { height: 100%; }
+}
+
+/* Sentence builder: signs and text side by side when its cell is wide. */
+.sentence-grid { display: grid; gap: 1rem; }
+@media (min-width: 1500px) { .sentence-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); } }

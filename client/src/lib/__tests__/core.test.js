@@ -35,7 +35,7 @@ describe('steps & pose', () => {
     // no location: made in neutral space in front of the chest; the unused hand hangs at its side
     const neutral = computeTargets({ H: { right: 'H07' } }, vocab);
     expect(neutral.hands.right).toMatchObject({ x: 156, y: 184, active: true });
-    expect(neutral.hands.left).toMatchObject({ x: 62, y: 216, active: false });
+    expect(neutral.hands.left).toMatchObject({ x: 64, y: 234, active: false });
   });
   it('MOTHER vs FATHER differ only by location', () => {
     const [m, f] = ['MOTHER', 'FATHER'].map((g) => gestures.find((x) => x.gloss === g).signForm);
@@ -56,13 +56,14 @@ describe('steps & pose', () => {
 
 describe('search', () => {
   it('ranks an exact 5-parameter match first and tags it exact', () => {
-    const q = { E: 'E02', H: 'H07', M: 'M04', HD: 'HD03', L: 'L04' }; // THANK YOU
+    // THANK YOU: smile + forward tilt, flat B hand, leaving the mouth (last location wins in the flat query)
+    const q = { E: 'E02', H: 'HX_OPEN_B', HD: 'HD03', L: 'LX_HEADAWAY' };
     const r = searchGestures(q, gestures, vocab);
     expect(r[0].gloss).toBe('THANK YOU');
     expect(r[0].exact).toBe(true);
   });
   it('location alone separates MOTHER from FATHER', () => {
-    const q = { H: 'H06', M: 'M11', L: 'L02' };
+    const q = { H: 'HX_5', M: 'MX_STRAIGHT_REP', L: 'L02' }; // thumb of a 5-hand tapping the forehead
     expect(searchGestures(q, gestures, vocab)[0].gloss).toBe('FATHER');
     expect(searchGestures({ ...q, L: 'L04' }, gestures, vocab)[0].gloss).toBe('MOTHER');
   });
@@ -74,9 +75,10 @@ describe('sequencer + non-manual markers', () => {
     const frames = [];
     const ok = await playSignForm(gestures[0].signForm, { ...fast, onFrame: (p) => frames.push(p) });
     expect(ok).toBe(true);
-    expect(frames).toHaveLength(3);
-    expect(frames[2].H.right).toBe('H05');   // set in step 1, still held in step 3
-    expect(frames[2].M.right).toBe('M02');   // set in step 2
+    // HELLO: flat B at the forehead, then travelling away from the head
+    expect(frames).toHaveLength(2);
+    expect(frames[1].H.right).toBe('HX_CLOSED_B'); // set in step 1, still held in step 2
+    expect(frames[1].L).toBe('LX_HEADAWAY');       // set in step 2
   });
   it('aborts cleanly', async () => {
     const ac = new AbortController();

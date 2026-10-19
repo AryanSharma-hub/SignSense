@@ -1,10 +1,16 @@
 /**
- * The five phonological parameter vocabularies. The original 13/12/6/7 rows (hands/
- * movements/heads/locations) are kept byte-for-byte so the original 16 gestures that
- * reference them never shift meaning. Growth beyond that (hands→~35, movements→~25,
- * locations→~15) is appended below, generated with varied-but-arbitrary geometry —
- * same draft/needs_review status as everything else; real labels and shapes still need
- * an ASL-fluent reviewer.
+ * The app's own parameter vocabularies, alongside the real ASL-LEX categories appended in
+ * index.js:
+ *   - expressions and heads: the non-manual markers (faces, head movements) used for grammar
+ *   - movements M01-M12: direction primitives for authoring by drag on the signer (ASL-LEX
+ *     records movement SHAPE but not direction, so drag-authoring needs these)
+ *   - locations: body places, reused by the ASL-LEX location mapping where they match
+ *   - hands H01-H13: the original descriptive handshapes, kept only so data written against
+ *     them still loads; no sign uses them and the pickers hide them (family 'legacy') —
+ *     handshapes are chosen from ASL-LEX's real handshape categories instead.
+ *
+ * The arbitrary "growth" rows that used to be generated here (H14-H35 handshapes, M13-M25
+ * movements with invented geometry) were removed with the placeholder signs that used them.
  */
 
 export const expressions = [
@@ -24,34 +30,34 @@ export const expressions = [
 
 // shape.curl = [thumb, index, middle, ring, pinky]; 0 = extended, 1 = fully curled.
 export const hands = [
-  { id: 'H01', label: 'Self-point',          glyph: '👆', family: 'point', shape: { curl: [0.8, 0, 1, 1, 1],          spread: 0 } },
-  { id: 'H02', label: 'Open palm up',        glyph: '🤲', family: 'open',  bothHanded: true, shape: { curl: [0.25, 0.3, 0.3, 0.3, 0.35], spread: 0.3 } },
-  { id: 'H03', label: 'Flat sweep',          glyph: '✋', family: 'flat',  shape: { curl: [0.25, 0, 0, 0, 0],         spread: 0 } },
-  { id: 'H04', label: 'Claw forward',        glyph: '🤏', family: 'claw',  shape: { curl: [0.5, 0.55, 0.55, 0.55, 0.55], spread: 0.55 } },
-  { id: 'H05', label: 'Open wave',           glyph: '👋', family: 'open',  shape: { curl: [0, 0, 0, 0, 0],            spread: 0.85 } },
-  { id: 'H06', label: 'Palm shrug',          glyph: '🖐️', family: 'open',  shape: { curl: [0.05, 0, 0, 0, 0],         spread: 0.5 } },
-  { id: 'H07', label: 'Flat at chin',        glyph: '✋', family: 'flat',  shape: { curl: [0.3, 0, 0, 0, 0],          spread: 0 } },
-  { id: 'H08', label: 'Fingers to mouth',    glyph: '🤌', family: 'point', shape: { curl: [0.55, 0.6, 0.6, 0.6, 0.6], spread: 0 } },
-  { id: 'H09', label: 'Crossed fists',       glyph: '✊', family: 'fist',  shape: { curl: [0.6, 1, 1, 1, 1],          spread: 0 } },
-  { id: 'H10', label: 'Open palm request',   glyph: '🤲', family: 'open',  bothHanded: true, shape: { curl: [0.3, 0.3, 0.3, 0.3, 0.35], spread: 0.2 } },
-  { id: 'H11', label: 'W-hand',              glyph: '🤟', family: 'letter', shape: { curl: [0.8, 0, 0, 0, 1],         spread: 0.65 } },
-  { id: 'H12', label: 'Flat hands together', glyph: '🙏', family: 'flat',  bothHanded: true, shape: { curl: [0.3, 0, 0, 0, 0], spread: 0 } },
-  { id: 'H13', label: 'Fist thumbs up',      glyph: '👍', family: 'fist',  shape: { curl: [0, 1, 1, 1, 1],            spread: 0, thumbAngle: -12 } },
+  { id: 'H01', label: 'Self-point',          glyph: '👆', family: 'legacy', shape: { curl: [0.8, 0, 1, 1, 1],          spread: 0 } },
+  { id: 'H02', label: 'Open palm up',        glyph: '🤲', family: 'legacy',  bothHanded: true, shape: { curl: [0.25, 0.3, 0.3, 0.3, 0.35], spread: 0.3 } },
+  { id: 'H03', label: 'Flat sweep',          glyph: '✋', family: 'legacy',  shape: { curl: [0.25, 0, 0, 0, 0],         spread: 0 } },
+  { id: 'H04', label: 'Claw forward',        glyph: '🤏', family: 'legacy',  shape: { curl: [0.5, 0.55, 0.55, 0.55, 0.55], spread: 0.55 } },
+  { id: 'H05', label: 'Open wave',           glyph: '👋', family: 'legacy',  shape: { curl: [0, 0, 0, 0, 0],            spread: 0.85 } },
+  { id: 'H06', label: 'Palm shrug',          glyph: '🖐️', family: 'legacy',  shape: { curl: [0.05, 0, 0, 0, 0],         spread: 0.5 } },
+  { id: 'H07', label: 'Flat at chin',        glyph: '✋', family: 'legacy',  shape: { curl: [0.3, 0, 0, 0, 0],          spread: 0 } },
+  { id: 'H08', label: 'Fingers to mouth',    glyph: '🤌', family: 'legacy', shape: { curl: [0.55, 0.6, 0.6, 0.6, 0.6], spread: 0 } },
+  { id: 'H09', label: 'Crossed fists',       glyph: '✊', family: 'legacy',  shape: { curl: [0.6, 1, 1, 1, 1],          spread: 0 } },
+  { id: 'H10', label: 'Open palm request',   glyph: '🤲', family: 'legacy',  bothHanded: true, shape: { curl: [0.3, 0.3, 0.3, 0.3, 0.35], spread: 0.2 } },
+  { id: 'H11', label: 'W-hand',              glyph: '🤟', family: 'legacy', shape: { curl: [0.8, 0, 0, 0, 1],         spread: 0.65 } },
+  { id: 'H12', label: 'Flat hands together', glyph: '🙏', family: 'legacy',  bothHanded: true, shape: { curl: [0.3, 0, 0, 0, 0], spread: 0 } },
+  { id: 'H13', label: 'Fist thumbs up',      glyph: '👍', family: 'legacy',  shape: { curl: [0, 1, 1, 1, 1],            spread: 0, thumbAngle: -12 } },
 ];
 
 // dir: compass position on the movement pad / drag target, or CENTER / PATTERN.
 export const movements = [
-  { id: 'M01', label: 'Forward tap',        dir: 'N',       family: 'forward' },
-  { id: 'M02', label: 'Outward arc',        dir: 'NE',      family: 'forward' },
-  { id: 'M07', label: 'Pull inward',        dir: 'E',       family: 'inward' },
-  { id: 'M04', label: 'Chin-forward tap',   dir: 'SE',      family: 'forward' },
+  { id: 'M01', label: 'Up',                 dir: 'N',       family: 'forward' },
+  { id: 'M02', label: 'Up and outward',     dir: 'NE',      family: 'forward' },
+  { id: 'M07', label: 'Outward',            dir: 'E',       family: 'inward' },
+  { id: 'M04', label: 'Down and outward',   dir: 'SE',      family: 'forward' },
   { id: 'M05', label: 'Side-to-side shake', dir: 'S',       family: 'lateral' },
-  { id: 'M06', label: 'Cross to chest',     dir: 'SW',      family: 'static' },
-  { id: 'M03', label: 'Point to self',      dir: 'W',       family: 'static' },
-  { id: 'M08', label: 'Palms-up lift',      dir: 'NW',      family: 'static' },
-  { id: 'M12', label: 'Tap at mouth',       dir: 'CENTER',  family: 'repeat' },
-  { id: 'M09', label: 'Circle at chin',     dir: 'PATTERN', family: 'circular' },
-  { id: 'M10', label: 'Circle on chest',    dir: 'PATTERN', family: 'circular' },
+  { id: 'M06', label: 'Down and inward',    dir: 'SW',      family: 'static' },
+  { id: 'M03', label: 'Inward',             dir: 'W',       family: 'static' },
+  { id: 'M08', label: 'Up and inward',      dir: 'NW',      family: 'static' },
+  { id: 'M12', label: 'Tap in place',       dir: 'CENTER',  family: 'repeat' },
+  { id: 'M09', label: 'Circle',             dir: 'PATTERN', family: 'circular' },
+  { id: 'M10', label: 'Circle (repeated)',  dir: 'PATTERN', family: 'circular' },
   { id: 'M11', label: 'Small up-tap',       dir: 'PATTERN', family: 'repeat' },
 ];
 
@@ -75,41 +81,7 @@ export const locations = [
   { id: 'L07', label: 'Waist',           bodyRegion: 'waist',    anchorX: 120, anchorY: 204, family: 'torso' },
 ];
 
-// --- Growth (v5): more expressive variety for the larger gesture set below. Arbitrary,
-// draft geometry — needs_review defaults true in the schema like every other row. ---
-
-const HAND_LABELS = [
-  'Curled fingers', 'Loose fist', 'Pinched fingers', 'Spread fingers', 'Bent hand', 'Hooked fingers',
-  'Relaxed palm', 'Cupped hand', 'Crooked index', 'Stacked fingers', 'Splayed hand', 'Soft fist',
-  'Tented fingers', 'Flicked fingers', 'Tight pinch', 'Angled palm', 'Loose wave', 'Half curl',
-  'Tapered fingers', 'Index and thumb', 'Three-finger pinch', 'Flat blade',
-];
-for (let i = 0; i < HAND_LABELS.length; i++) {
-  const n = i + 1;
-  const base = (n * 0.37) % 1;
-  hands.push({
-    id: `H${14 + i}`, label: HAND_LABELS[i], family: 'extra',
-    shape: {
-      curl: [Math.round(((n * 0.21) % 1) * 100) / 100, Math.round(base * 100) / 100, Math.round(((base + 0.15) % 1) * 100) / 100,
-        Math.round(((base + 0.3) % 1) * 100) / 100, Math.round(((base + 0.45) % 1) * 100) / 100],
-      spread: Math.round(((n * 0.13) % 0.9) * 100) / 100,
-    },
-  });
-}
-
-const COMPASS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
-const MOVE_LABELS = [
-  'Upward sweep', 'Diagonal push', 'Short jab', 'Downward drop', 'Wide shake', 'Inward draw',
-  'Outward push', 'Lifted arc', 'Double tap', 'Slow circle', 'Quick flick', 'Rolling wave', 'Bounce',
-];
-for (let i = 0; i < MOVE_LABELS.length; i++) {
-  movements.push({
-    id: `M${13 + i}`, label: MOVE_LABELS[i],
-    dir: i < COMPASS.length ? COMPASS[i] : 'PATTERN',
-    family: 'extra',
-  });
-}
-
+// Additional body locations (used by the ASL-LEX location mapping: neck, upper/lower chest, hip).
 const LOC_EXTRA = [
   { label: 'Nose',         bodyRegion: 'nose',         anchorX: 120, anchorY: 80 },
   { label: 'Temple',       bodyRegion: 'temple',       anchorX: 100, anchorY: 60 },
@@ -120,4 +92,4 @@ const LOC_EXTRA = [
   { label: 'Hip',          bodyRegion: 'hip',          anchorX: 120, anchorY: 220 },
   { label: 'Thigh',        bodyRegion: 'thigh',        anchorX: 120, anchorY: 250 },
 ];
-LOC_EXTRA.forEach((l, i) => locations.push({ id: `L${8 + i}`, family: 'extra', ...l }));
+LOC_EXTRA.forEach((l, i) => locations.push({ id: `L${8 + i}`, family: 'body', ...l }));

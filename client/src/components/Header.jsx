@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from './ui.jsx';
 
-function Popover({ label, children, trigger }) {
+export function Popover({ label, children, trigger }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -13,7 +13,7 @@ function Popover({ label, children, trigger }) {
   }, [open]);
   return (
     <div className="relative" ref={ref}>
-      <button type="button" className="btn !min-h-[42px] !px-3 text-[14px]" aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen(!open)}>{trigger}</button>
+      <button type="button" className="btn !min-h-[38px] !px-2.5 text-[13.5px]" aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen(!open)}>{trigger}</button>
       {open && <div role="dialog" aria-label={label} className="absolute right-0 top-full z-40 mt-2 w-[min(92vw,380px)] rounded-2xl border border-line bg-surface p-4 shadow-lift">{children}</div>}
     </div>
   );
@@ -28,50 +28,50 @@ function Toggle({ label, hint, checked, disabled, onChange }) {
   );
 }
 
-export function Header({ theme, onToggleTheme, flags, sttTier, reviewCount, total }) {
+/** The translator's page tools in the top bar: the sign-data notice and the Engines settings. */
+export function TranslatorTools({ flags, sttTier, reviewCount, total, sources = {} }) {
   const tierText = { native: 'Speech input: your browser', server: 'Speech input: server transcription', none: 'Speech input: typing only (no microphone support here)' }[sttTier];
+  const anyAi = flags.available.aiSentence || flags.available.aiConcepts;
+  const fromLex = (sources['asl-lex'] || 0) + (sources.curated || 0);
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-3">
-        <span aria-hidden className="grid h-10 w-10 place-items-center rounded-xl bg-hand text-on-accent">
-          <svg viewBox="0 0 32 32" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"><path d="M9 21c0-6 2-10 7-10s7 4 7 10" /><circle cx="16" cy="8" r="0.5" /></svg>
-        </span>
-        <div>
-          <h1 className="font-display text-[24px] font-semibold leading-none tracking-tight">SignSense</h1>
-          <p className="text-[13.5px] text-muted">Sign in one direction, speech in the other.</p>
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        {reviewCount > 0 && (
-          <Popover label="About the sign data" trigger={<><Icon name="info" size={16} /> Draft sign data</>}>
-            <h2 className="font-display text-[17px] font-semibold">Sign data is a draft</h2>
-            <p className="mt-1.5 text-[14px] leading-relaxed text-muted">
-              {reviewCount} of {total} signs are marked <strong className="text-ink">needs review</strong>. The handshapes, movements and locations
-              are placeholders to demonstrate the app, not verified ASL. Please don't rely on this for medical, legal or other
-              important communication until an ASL-fluent reviewer has checked the data.
-            </p>
-            <p className="mt-2 border-t border-line pt-2 text-[12.5px] text-muted">
-              Most signs' handshape/location/movement categories are drawn from{' '}
-              <a className="underline" href="https://asl-lex.org/" target="_blank" rel="noreferrer">ASL-LEX 2.0</a>{' '}
-              (Caselli, Sehyr, Cohen-Goldberg &amp; Emmorey), used under CC BY-NC 4.0 — real linguistic categories, but
-              translated into this app's rendering by us, not independently reviewed.
-            </p>
-          </Popover>
-        )}
+      <>
+        <Popover label="About the sign data" trigger={<><Icon name="info" size={16} /> Sign data{reviewCount > 0 ? ' · not yet reviewed' : ''}</>}>
+          <h2 className="font-display text-[17px] font-semibold">About the sign data</h2>
+          <p className="mt-1.5 text-[14px] leading-relaxed text-muted">
+            {total.toLocaleString()} American Sign Language (ASL) signs. <strong className="text-ink">{fromLex.toLocaleString()}</strong> take their
+            handshape, hands used, movement shape and locations from{' '}
+            <a className="underline" href="https://asl-lex.org/" target="_blank" rel="noreferrer">ASL-LEX 2.0</a>, a published lexical database of ASL,
+            and are checked against it automatically.
+            {sources.authored ? <> {sources.authored} common signs ASL-LEX lacks were written from standard ASL descriptions and are marked <strong className="text-ink">Authored</strong>.</> : null}
+          </p>
+          <p className="mt-2 text-[14px] leading-relaxed text-muted">
+            ASL-LEX doesn't record movement direction, palm orientation or facial grammar, so those are approximated.
+            {reviewCount > 0 && <> No sign has been reviewed by a fluent signer yet. Please don't rely on this for medical, legal or other important communication.</>}
+            {' '}Words without a sign are never given an invented one: names and numbers are fingerspelled, and anything else is shown as unsigned.
+          </p>
+          <p className="mt-2 border-t border-line pt-2 text-[12.5px] text-muted">
+            ASL-LEX 2.0: Caselli, Sehyr, Cohen-Goldberg &amp; Emmorey, used under CC BY-NC 4.0 (non-commercial).
+          </p>
+        </Popover>
         <Popover label="Engines" trigger={<><Icon name="sliders" size={16} /> Engines</>}>
-          <h2 className="font-display text-[17px] font-semibold">Optional AI assist</h2>
-          <p className="mb-1 text-[13.5px] text-muted">Everything works without these. If one is unavailable, the built-in rules are used automatically.</p>
-          <Toggle label="AI wording for your sentences" hint={flags.available.aiSentence ? 'Smoother English from your signs.' : 'Not configured on the server.'} checked={!!flags.user.aiSentence && flags.available.aiSentence} disabled={!flags.available.aiSentence} onChange={(v) => flags.set('aiSentence', v)} />
-          <Toggle label="AI understanding of speech" hint={flags.available.aiConcepts ? 'Better with paraphrases and rephrasing.' : 'Not configured on the server.'} checked={!!flags.user.aiConcepts && flags.available.aiConcepts} disabled={!flags.available.aiConcepts} onChange={(v) => flags.set('aiConcepts', v)} />
-          <Toggle label="Server speech recognition" hint={flags.available.serverStt ? 'Use instead of the browser’s built-in recognition.' : 'Not configured on the server.'} checked={!!flags.user.serverStt && flags.available.serverStt} disabled={!flags.available.serverStt} onChange={(v) => flags.set('serverStt', v)} />
-          <Toggle label="Fingerspell unknown words" hint="Proper nouns and other words with no sign are spelled out letter by letter instead of left unsigned." checked={flags.effective.autoFingerspell} onChange={(v) => flags.set('autoFingerspell', v)} />
+          <h2 className="font-display text-[17px] font-semibold">Translation settings</h2>
+          <Toggle label="Fingerspell names and numbers" hint="Names, places and numbers with no sign are spelled out letter by letter instead of left unsigned." checked={flags.effective.autoFingerspell} onChange={(v) => flags.set('autoFingerspell', v)} />
+          {flags.available.serverStt && (
+            <Toggle label="Server speech recognition" hint="Use instead of the browser’s built-in recognition." checked={!!flags.user.serverStt} onChange={(v) => flags.set('serverStt', v)} />
+          )}
+          {anyAi && (
+            <>
+              <p className="mt-2 border-t border-line pt-2 text-[13px] font-semibold text-muted">AI assist (configured on this server)</p>
+              {flags.available.aiSentence && (
+                <Toggle label="AI wording for your sentences" hint="Smoother English from your signs. Falls back to the built-in rules if unavailable." checked={!!flags.user.aiSentence} onChange={(v) => flags.set('aiSentence', v)} />
+              )}
+              {flags.available.aiConcepts && (
+                <Toggle label="AI understanding of speech" hint="Better with paraphrases. Falls back to the built-in rules if unavailable." checked={!!flags.user.aiConcepts} onChange={(v) => flags.set('aiConcepts', v)} />
+              )}
+            </>
+          )}
           <p className="mt-2 border-t border-line pt-2 text-[13px] text-muted">{tierText}</p>
         </Popover>
-        <button type="button" className="btn !min-h-[42px] !px-3" onClick={onToggleTheme} aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}>
-          <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
-        </button>
-      </div>
-    </header>
+      </>
   );
 }

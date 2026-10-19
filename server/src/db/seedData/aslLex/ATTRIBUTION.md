@@ -14,19 +14,21 @@ Licensed **CC BY-NC 4.0** (https://creativecommons.org/licenses/by-nc/4.0/) — 
 and adapt with attribution, **non-commercial only**. Keep that in mind before any
 commercial use of this project.
 
-## What was actually derived vs. what's new here
+## What is derived, and how it is checked
 
-ASL-LEX documents each sign's *real* phonological category (e.g. handshape `curved_5`,
-major/minor location `Head`/`Forehead`, movement shape `Straight`, repeated or not). The
-translation of those standard category names into this app's own rendering parameters
-(finger-curl arrays, compass directions, viewBox anchor coordinates) is new work done for
-this project — a best-effort mapping, not something ASL-LEX itself specifies, and not
-independently checked by an ASL-fluent reviewer. That's why every row still carries
-`needs_review: true`, same as the rest of the dataset. The difference from the
-hash-based placeholder entries is that the *source category* per word is now a real,
-published linguistic fact instead of an arbitrary function of the English spelling.
+ASL-LEX documents each sign's phonological categories (e.g. handshape `curved_5`, sign type
+`AsymmetricalDifferentHandshape`, minor location `Forehead` → second location `HeadAway`,
+movement shape `Straight`, repeated or not, handshape change). SignSense imports, per sign
+meaning (lemma × lexical class): both hands' handshapes, which hands move, the movement shape
+and repetition, the start and end locations, the handshape change, the lexical class (part of
+speech), high-agreement English translations, and the sign frequency used to pick the most
+familiar variant.
 
-No facial expression or head-motion data is included — ASL-LEX covers manual phonology
-only, so these entries use the neutral citation-form face/head; sentence-level grammar
-(question, negation, …) is still layered on by `client/src/lib/nonManual.js` the same way
-it is for every other gesture.
+Translating those category names into this app's rendering parameters (finger-curl arrays,
+body anchor coordinates) is this project's own work. `npm run seed:validate -w server`
+re-derives every ASL-LEX-sourced sign from its source row (by ASL-LEX's unique `Code`) and
+fails on any mismatch; `npm run seed:report -w server` writes `../../VOCABULARY_REPORT.md`.
+
+Not in ASL-LEX and therefore not invented: movement direction, palm orientation, facial
+grammar. Every row still carries `needs_review: true` — matching the published coding is
+not the same as review by a fluent signer.

@@ -28,16 +28,17 @@ export function delay(ms, signal) {
  * @returns {Promise<boolean>} true if it ran to completion, false if aborted
  */
 export async function playSignForm(signForm, opts = {}) {
-  const { label = '', marker = null, signal, hold = TIMING.STEP_HOLD, gap = TIMING.STEP_GAP, onFrame } = opts;
+  const { label = '', marker = null, signal, hold = TIMING.STEP_HOLD, gap = TIMING.STEP_GAP, onFrame, clock } = opts;
+  const wait = clock ? clock.wait : delay;
   const steps = applyMarker(signForm, marker);
   let acc = blankStep();
   for (let i = 0; i < steps.length; i++) {
     if (signal?.aborted) return false;
     acc = mergeFull([acc, steps[i]]);
     onFrame?.(acc, { index: i, count: steps.length, step: steps[i], label });
-    await delay(hold, signal);
+    await wait(hold, signal);
     if (signal?.aborted) return false;
-    await delay(gap, signal);
+    await wait(gap, signal);
   }
   return true;
 }
@@ -53,4 +54,24 @@ export async function playSequence(words, opts = {}) {
     if (w < words.length - 1) await delay(wordGap, signal);
   }
   return true;
+}
+
+/**
+ * The same accumulation as playSignForm, laid out up front as a flat list of frames —
+ * one per step, across every word — so a player can step, scrub and jump to any word
+ * instead of only running start to finish. Each frame carries its full merged pose.
+ *
+ * @returns {Array<{word:number, step:number, steps:number, gloss:string, pose:object, needsReview:boolean}>}
+ */
+export function buildTimeline(words, marker = null) {
+  const frames = [];
+  (words || []).forEach((w, wi) => {
+    const steps = applyMarker(w.signForm || [], marker);
+    let acc = blankStep();
+    steps.forEach((st, si) => {
+      acc = mergeFull([acc, st]);
+      frames.push({ word: wi, step: si, steps: steps.length, gloss: w.gloss, pose: acc, needsReview: !!w.needsReview });
+    });
+  });
+  return frames;
 }

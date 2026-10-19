@@ -27,6 +27,7 @@ const DEF = {
   curved_1: { label: 'Curved 1', curl: [0.5, 0.3, 1, 1, 1], spread: 0 },
   curved_4: { label: 'Curved 4', curl: [0.9, 0.25, 0.25, 0.25, 0.25], spread: 0.4 },
   curved_5: { label: 'Curved 5', curl: [0.25, 0.3, 0.3, 0.3, 0.35], spread: 0.3 },
+  curved_b: { label: 'Curved B (cupped palm)', curl: [0.4, 0.3, 0.3, 0.3, 0.3], spread: 0 },
   curved_h: { label: 'Curved H', curl: [0.9, 0.3, 0.3, 1, 1], spread: 0 },
   curved_l: { label: 'Curved L', curl: [0.3, 0.3, 1, 1, 1], spread: 0.3, thumbAngle: -60 },
   curved_v: { label: 'Curved V', curl: [1, 0.3, 0.3, 1, 1], spread: 0.4 },
@@ -77,12 +78,24 @@ export const ASL_LEX_HANDSHAPES = Object.fromEntries(
   ]),
 );
 
-/** All 58 handshape rows, ready to append to the `hands` vocab table. */
+/** All handshape rows (ASL-LEX's 58 dominant-hand categories + Curved B, used only by the
+ * non-dominant hand), ready to append to the `hands` vocab table. */
 export const aslLexHandRows = Object.values(ASL_LEX_HANDSHAPES);
 
-/** ASL-LEX code (lowercase, e.g. "curved_5") -> this app's hand id, or null for NA/unset. */
+/**
+ * The non-dominant hand is coded with a coarser set in ASL-LEX 2.0 (NonDominantHandshape.2.0):
+ * "B" (flat hand), "curved_b" and "Lax" (relaxed, unspecified) alongside the regular codes.
+ */
+const NONDOMINANT_ALIASES = { b: 'flat_b', lax: 'open_b' };
+
+/**
+ * ASL-LEX code (e.g. "curved_5", or a non-dominant "B") -> this app's hand id, or null for
+ * NA/unset and for the "...Violation" codes, which say the hand breaks a constraint without
+ * saying what its shape is — those are left uncoded rather than guessed.
+ */
 export function handshapeIdFor(code) {
-  const c = String(code || '').trim().toLowerCase();
-  if (!c || c === 'na' || c === 'dominanceconditionviolation') return null;
+  const raw = String(code || '').trim().toLowerCase();
+  if (!raw || raw === 'na' || raw.endsWith('violation')) return null;
+  const c = NONDOMINANT_ALIASES[raw] ?? raw;
   return ASL_LEX_HANDSHAPES[c]?.id ?? null;
 }

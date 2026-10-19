@@ -3,6 +3,13 @@ import { matchPhrase, matchSingle, matchTerm, MIN_SCORE } from './matcher.js';
 
 const IS_DIGITS = (w) => /^[0-9]+$/.test(w);
 
+/** Number words with no sign of their own are fingerspelled as digits (ASL number handshapes). */
+const NUMBER_WORDS = {
+  zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+  eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18,
+  nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90,
+};
+
 /**
  * A word is fingerspelled, not dropped as unmatched, when it's a pure number (any length —
  * "5", "120", a street address, a phone number) OR it looks like a proper noun: capitalized
@@ -54,7 +61,11 @@ export function extractDeterministic(transcript, index, { autoFingerspell = true
       found.push(rec);
     } else if (NEGATION_TOKENS.has(w)) slot[i] = { kind: 'marker' };
     else if (FUNCTION_WORDS.has(w)) slot[i] = { kind: 'function' };
-    else if (autoFingerspell && looksSpellable(w, words[T[i].rawIdx]?.raw)) {
+    else if (autoFingerspell && NUMBER_WORDS[w] != null) {
+      const rec = { m: { entry: { gestureId: null, gloss: String(NUMBER_WORDS[w]) }, via: 'spelled', score: 1 }, tokenStart: i, tokenEnd: i };
+      slot[i] = { kind: 'spelled', rec };
+      found.push(rec);
+    } else if (autoFingerspell && looksSpellable(w, words[T[i].rawIdx]?.raw)) {
       const rec = { m: { entry: { gestureId: null, gloss: words[T[i].rawIdx].raw.toUpperCase() }, via: 'spelled', score: 1 }, tokenStart: i, tokenEnd: i };
       slot[i] = { kind: 'spelled', rec };
       found.push(rec);

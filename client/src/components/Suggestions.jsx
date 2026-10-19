@@ -1,10 +1,9 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { SignerDummy } from './SignerDummy.jsx';
-import { Icon, ParamChip } from './ui.jsx';
-import { searchGestures } from '../lib/search.js';
+import { Icon, ParamChip, TONE, SourceBadge } from './ui.jsx';
+import { searchGestures, explainMatch, searchText } from '../lib/search.js';
 import { flattenStepsFlat, mergeFull } from '../lib/steps.js';
 import { playSignForm } from '../lib/playSignForm.js';
-import { byId } from '../lib/vocabulary.js';
 
 /** Thumbnail of a gesture's final pose; animates through its steps on hover, focus or autoplay. */
 function MiniPreview({ gesture, vocab, autoplay }) {
@@ -25,13 +24,42 @@ function MiniPreview({ gesture, vocab, autoplay }) {
   useEffect(() => () => ac.current?.abort(), []);
 
   return (
-    <div className="w-[76px] shrink-0 rounded-lg bg-surface2" onMouseEnter={play} onFocus={play} tabIndex={-1} aria-hidden="true">
-      <SignerDummy pose={pose} vocab={vocab} compact />
+    <div className="w-[64px] shrink-0 overflow-hidden rounded-lg bg-surface2" onMouseEnter={play} onFocus={play} tabIndex={-1} aria-hidden="true">
+      <SignerDummy pose={pose} vocab={vocab} compact framing="upper" />
     </div>
   );
 }
 
-/** Live weighted search over all five parameters as the array is built. */
+const WHY_MARK = { same: '✓', similar: '≈', different: '✗' };
+const WHY_TEXT = { same: 'matches', similar: 'similar', different: 'differs' };
+
+/** One sign result: preview, name, why it matched, data-quality flag, play and add. */
+function SignRow({ g, vocab, player, onAdd, onPlay, autoplay, badge, why }) {
+  return (
+    <li className="flex items-start gap-2.5 rounded-xl border border-line bg-surface p-2 transition-colors hover:border-hand/40">
+      <MiniPreview gesture={g} vocab={vocab} autoplay={autoplay} />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <span className="gloss text-[16px]">{g.gloss}</span>
+          {badge}
+          <SourceBadge sign={g} />
+        </div>
+        {g.meaning && <p className="truncate text-[13px] text-muted" title={g.meaning}>{g.meaning}</p>}
+        {why && <div className="mt-1 flex flex-wrap gap-1">{why}</div>}
+        <div className="mt-1.5 flex gap-1.5">
+          <button type="button" className="btn !min-h-[32px] !px-2 text-[13px]" aria-label={`Play ${g.gloss} on the signer`} disabled={player.performing} onClick={() => onPlay(g)}><Icon name="play" size={12} /> Play</button>
+          <button type="button" className="btn btn-primary !min-h-[32px] !px-2.5 text-[13px]" onClick={() => onAdd(g)}>Add</button>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+/**
+ * Suggestions: signs that match what is being built (parameter search over all five
+ * parameters, with the reason each one matched), a word search over the whole library,
+ * and the signs viewed recently. Exact and approximate matches are labelled differently.
+ */
 export function Suggestions({ composer, vocab, gestures, player, onAddWord }) {
   const query = useMemo(() => flattenStepsFlat(composer.arraySteps), [composer.arraySteps]);
   const deferred = useDeferredValue(query);
@@ -40,39 +68,93 @@ export function Suggestions({ composer, vocab, gestures, player, onAddWord }) {
     () => (filled ? searchGestures(deferred, gestures, vocab).filter((r) => r.score >= 0.3).slice(0, 6) : []),
     [deferred, filled, gestures, vocab]);
 
-  return (
-    <section className="panel p-4" aria-label="Suggested signs">
-      <h2 className="font-display text-[18px] font-semibold tracking-tight">Suggestions</h2>
-      <p className="mb-3 text-[13.5px] text-muted">Signs that match what you have built so far. They update as you go.</p>
+  const [text, setText] = useState('');
+  const deferredText = useDeferredValue(text);
+  const found = useMemo(() => searchText(deferredText, gestures, 12), [deferredText, gestures]);
 
-      {!filled && <p className="rounded-xl bg-surface2 px-3 py-4 text-[14.5px] text-muted">Start with any part of a sign — a hand, a place on the body, a movement — and matching signs appear here.</p>}
-      {filled && results.length === 0 && <p className="rounded-xl bg-surface2 px-3 py-4 text-[14.5px] text-muted">No close matches yet. Try changing or removing one part.</p>}
+  const [recent, setRecent] = useState([]);
+  const remember = (g) => setRecent((r) => [g, ...r.filter((x) => x.id !== g.id)].slice(0, 8));
+  const play = (g) => { remember(g); player.perform([g], { label: g.gloss, source: 'A' }); };
+  const add = (g) => { remember(g); onAddWord(g); };
+
+  const why = (g) => explainMatch(deferred, g.flat || flattenStepsFlat(g.signForm), vocab).map(({ k, kind }) => (
+    <span
+      key={k} title={`${TONE[k].name} ${WHY_TEXT[kind]}`}
+      className={`inline-flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[11.5px] font-semibold leading-tight
+        ${kind === 'same' ? TONE[k].soft : kind === 'similar' ? 'border-line bg-surface2 text-ink' : 'border-line text-muted line-through decoration-1'}`}
+    ><span aria-hidden>{WHY_MARK[kind]}</span> {TONE[k].name}</span>
+  ));
+
+  return (
+    <section className="panel flex min-h-full flex-col p-3.5" aria-label="Suggested signs">
+      <h2 className="font-display text-[18px] font-semibold tracking-tight">Suggestions</h2>
+      <p className="mb-2.5 text-[13px] text-muted">Signs matching what you build, or search the library by word.</p>
+
+      <label className="relative mb-3 block">
+        <span className="sr-only">Search signs by word</span>
+        <Icon name="search" size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
+        <input
+          type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={`Search ${gestures.length.toLocaleString()} signs…`}
+          className="min-h-[40px] w-full rounded-xl border border-line bg-surface2 pl-9 pr-3 text-[15px] placeholder:text-muted/70"
+        />
+      </label>
+
+      {deferredText.trim() && (
+        <div className="mb-4">
+          <p className="field-label mb-1.5">Search results{found.length ? ` · ${found.length}` : ''}</p>
+          {found.length === 0
+            ? <p className="rounded-xl bg-surface2 px-3 py-3 text-[14px] text-muted">No sign for “{deferredText.trim()}” in the library. In a conversation it would be fingerspelled.</p>
+            : (
+              <ul className="space-y-2">
+                {found.map(({ gesture: g, reason, exact }) => (
+                  <SignRow
+                    key={`t-${g.id}`} g={g} vocab={vocab} player={player} onAdd={add} onPlay={play}
+                    badge={exact
+                      ? <span className="rounded-md bg-ok/15 px-1.5 py-0.5 text-[11.5px] font-bold text-ok">{reason}</span>
+                      : <span className="text-[12px] font-semibold text-muted">{reason}</span>}
+                  />
+                ))}
+              </ul>
+            )}
+        </div>
+      )}
+
+      <p className="field-label mb-1.5">Matches for your sign</p>
+      {!filled && (
+        <div className="rounded-xl bg-surface2 px-3 py-3 text-[14px] leading-relaxed text-muted">
+          <p>Start with any part of a sign: tap a hand, the face, an arm or the body on the signer. Matching signs appear here as you go.</p>
+          <div className="mt-2 flex flex-wrap gap-1">
+            {['H', 'L', 'M', 'E', 'HD'].map((k) => <ParamChip key={k} k={k}>{TONE[k].name}</ParamChip>)}
+          </div>
+        </div>
+      )}
+      {filled && results.length === 0 && <p className="rounded-xl bg-surface2 px-3 py-3 text-[14px] text-muted">No close matches yet. Try changing or removing one part.</p>}
 
       <ul className="space-y-2" aria-live="polite">
         {results.map((g, i) => (
-          <li key={g.id} className="flex items-center gap-3 rounded-xl border border-line p-2">
-            <MiniPreview gesture={g} vocab={vocab} autoplay={i === 0} />
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="gloss text-[17px]">{g.gloss}</span>
-                {g.exact
-                  ? <span className="rounded-md bg-ok/15 px-1.5 py-0.5 text-[12.5px] font-bold text-ok">Exact match</span>
-                  : <span className="text-[13px] font-semibold text-muted">{Math.round(g.score * 100)}% close</span>}
-                {g.needsReview && <span title="Sign data not yet reviewed by an ASL-fluent reviewer" className="rounded-md border border-line px-1.5 py-0.5 text-[12px] font-semibold text-muted">Draft</span>}
-              </div>
-              <p className="truncate text-[13.5px] text-muted">{g.meaning}</p>
-              <div className="mt-1 flex flex-wrap gap-1">
-                {g.flat.L && <ParamChip k="L">{byId(vocab, 'L', g.flat.L)?.label}</ParamChip>}
-                {g.flat.H && <ParamChip k="H">{byId(vocab, 'H', g.flat.H)?.label}</ParamChip>}
-              </div>
-            </div>
-            <div className="flex shrink-0 flex-col gap-1.5 sm:flex-row">
-              <button type="button" className="btn !min-h-[40px] !px-2.5" aria-label={`Play ${g.gloss} on the signer`} disabled={player.performing} onClick={() => player.perform([g], { label: g.gloss, source: 'A' })}><Icon name="play" size={14} /></button>
-              <button type="button" className="btn btn-primary !min-h-[40px] !px-3 text-[14px]" onClick={() => onAddWord(g)}>Add</button>
-            </div>
-          </li>
+          <SignRow
+            key={g.id} g={g} vocab={vocab} player={player} onAdd={add} onPlay={play} autoplay={i === 0}
+            badge={g.exact
+              ? <span className="rounded-md bg-ok/15 px-1.5 py-0.5 text-[11.5px] font-bold text-ok">Exact match</span>
+              : <span className="text-[12px] font-semibold text-muted">{Math.round(g.score * 100)}% close</span>}
+            why={why(g)}
+          />
         ))}
       </ul>
+
+      {recent.length > 0 && (
+        <div className="mt-4 border-t border-line pt-3">
+          <p className="field-label mb-1.5">Recently viewed</p>
+          <div className="flex flex-wrap gap-1.5">
+            {recent.map((g) => (
+              <button key={`r-${g.id}`} type="button" disabled={player.performing} onClick={() => play(g)}
+                className="chip border-line bg-surface !py-0.5 text-[13px] hover:bg-surface2" aria-label={`Play ${g.gloss} again`}>
+                <Icon name="play" size={10} /> <span className="font-semibold tracking-wide">{g.gloss}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

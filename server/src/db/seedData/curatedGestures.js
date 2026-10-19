@@ -1,76 +1,83 @@
 /**
- * The original 16 hand-authored gestures (v1-v4). Kept byte-for-byte: several tests
- * hardcode exact behavior against these (MOTHER/FATHER location-only difference,
- * HELP joined=false / PLEASE joined=true, the "water or a sandwich" reply, etc.) —
- * see server/test/api.test.js and the client integration test. Dataset growth from
- * here on is strictly additive (see bulkGestures.js).
+ * The 16 core conversation signs. Their PHONOLOGY (handshape, sign type, movement,
+ * locations, handshape change) is not hand-written: it is built from each sign's ASL-LEX
+ * 2.0 entry by the same mapping as every other ASL-LEX sign, so it cannot drift from the
+ * source. What is curated here is only what ASL-LEX does not record:
+ *   - keywords: English words and phrases that ASL signs WITH THIS SAME SIGN (never words
+ *     that have their own, different sign — e.g. "drink" is not WATER, "need" is not WANT)
+ *   - non-manual markers that are part of the citation form (the nod in YES, the
+ *     headshake in NO) or that carry its usual affect (a soft smile on THANK YOU)
+ *
+ * The first versions of these 16 were drawn by hand and several were wrong against the
+ * ASL-LEX coding (YES was two open palms instead of a nodding S-hand, PLEASE used both
+ * hands, WANT used one claw hand, …) — see server/src/db/VOCABULARY_REPORT.md.
  */
-export const curatedGestures = [
-  { gloss: 'HELLO', pos: 'interj', english: 'hello', meaning: 'A friendly greeting exchanged on meeting someone.',
-    // together: the handshape and its location at the forehead are deliberately linked —
-    // a demonstration of the explicit pairing feature (independent of the forward tap that follows).
-    signForm: [{ E: 'E01', L: 'L02', H: { right: 'H05' }, together: [['H', 'L']] }, { M: { right: 'M02' } }, { HD: 'HD01' }],
-    keywords: [['hello', 1], ['hi', 1], ['hey', 0.9], ['greetings', 0.7], ['howdy', 0.6], ['good morning', 0.6], ['good afternoon', 0.6], ['good evening', 0.6]] },
+import { groupMeanings, stepsFromRow } from './aslLex/index.js';
+import { SAME_SIGN_SYNONYMS } from './wordLists.js';
 
-  { gloss: 'THANK YOU', pos: 'interj', english: 'thank you', meaning: 'An expression of gratitude.',
-    signForm: [{ E: 'E02', L: 'L04', H: { right: 'H07' } }, { M: { right: 'M04' } }, { HD: 'HD03' }],
-    keywords: [['thank you', 1], ['thanks', 1], ['thank', 1], ['appreciate', 0.8], ['grateful', 0.7], ['cheers', 0.5]] },
-
-  { gloss: 'YES', pos: 'interj', english: 'yes', meaning: 'An affirmative response.',
-    signForm: [{ E: 'E03', H: { right: 'H02' } }, { M: { right: 'M01' } }, { HD: 'HD02' }],
-    keywords: [['yes', 1], ['yeah', 0.9], ['yep', 0.9], ['yup', 0.9], ['sure', 0.6], ['ok', 0.6], ['okay', 0.6], ['correct', 0.6], ['agree', 0.7], ['of course', 0.6]] },
-
-  { gloss: 'NO', pos: 'interj', english: 'no', meaning: 'A negative response.',
-    signForm: [{ E: 'E04', H: { right: 'H03' } }, { M: { right: 'M05' } }, { HD: 'HD04' }],
-    keywords: [['no', 1], ['nope', 0.9], ['nah', 0.9], ['no way', 0.7]] },
-
-  { gloss: 'LOVE', pos: 'verb', english: 'love', meaning: 'An expression of deep affection — arms cross to hug the chest.',
-    signForm: [{ E: 'E05', L: 'L01', H: { right: 'H09', left: 'H09' } }, { M: { right: 'M06', left: 'M06' } }, { HD: 'HD02' }],
-    keywords: [['love', 1], ['adore', 0.8], ['in love', 0.8], ['cherish', 0.6]] },
-
-  { gloss: 'HELP', pos: 'verb', english: 'help', meaning: 'A request for assistance — a fist rests on a flat palm and both lift together.',
-    signForm: [{ E: 'E06', L: 'L01', H: { right: 'H13', left: 'H03' } }, { M: { right: 'M08', left: 'M08' } }, { HD: 'HD01' }],
-    keywords: [['help', 1], ['assist', 0.9], ['aid', 0.6], ['support', 0.5], ['rescue', 0.6]] },
-
-  { gloss: 'WATER', pos: 'noun', english: 'water', meaning: 'The clear liquid; also, to drink.',
-    signForm: [{ E: 'E07', L: 'L04', H: { right: 'H11' } }, { M: { right: 'M09' } }, { HD: 'HD02' }],
-    keywords: [['water', 1], ['drink', 0.8], ['thirsty', 0.8], ['thirst', 0.8], ['beverage', 0.5], ['hydrate', 0.5]] },
-
-  { gloss: 'PLEASE', pos: 'interj', english: 'please', meaning: 'A polite request or appeal — both flat palms circle together on the chest.',
-    signForm: [{ E: 'E08', L: 'L01', H: { right: 'H12', left: 'H12' } }, { M: { right: 'M10', left: 'M10' } }, { HD: 'HD03' }],
-    keywords: [['please', 1], ['kindly', 0.7]] },
-
-  { gloss: 'I', pos: 'pronoun', english: 'I', meaning: 'First-person self-reference.',
-    signForm: [{ E: 'E01', L: 'L01', H: { right: 'H01' } }, { M: { right: 'M03' } }, { HD: 'HD01' }],
-    keywords: [['i', 1], ['me', 0.9], ['myself', 0.8]] },
-
-  { gloss: 'YOU', pos: 'pronoun', english: 'you', meaning: 'Second-person reference — point toward the person addressed.',
-    signForm: [{ E: 'E01', H: { right: 'H01' } }, { M: { right: 'M01' } }],
-    keywords: [['you', 1], ['yourself', 0.7]] },
-
-  { gloss: 'WANT', pos: 'verb', english: 'want', meaning: 'A desire for something.',
-    signForm: [{ E: 'E06', H: { right: 'H04' } }, { M: { right: 'M07' } }, { HD: 'HD01' }],
-    keywords: [['want', 1], ['need', 0.8], ['desire', 0.7], ['wish', 0.6], ['crave', 0.5], ['wanna', 0.9],
-               ['would like', 0.9], ['give me', 0.7], ['can i have', 0.7], ['could i have', 0.7], ['may i have', 0.7]] },
-
-  { gloss: 'GOOD', pos: 'adj', english: 'good', meaning: 'A positive quality or approval.',
-    signForm: [{ E: 'E02', L: 'L04', H: { right: 'H05' } }, { M: { right: 'M02' } }, { HD: 'HD02' }],
-    keywords: [['good', 1], ['great', 0.8], ['nice', 0.8], ['excellent', 0.8], ['awesome', 0.7], ['wonderful', 0.7], ['fine', 0.6], ['okay', 0.5], ['ok', 0.5]] },
-
-  { gloss: 'MORE', pos: 'adv', english: 'more', meaning: 'A request for an additional amount.',
-    signForm: [{ E: 'E09', L: 'L01', H: { right: 'H06' } }, { M: { right: 'M11' } }, { HD: 'HD01' }],
-    keywords: [['more', 1], ['another', 0.7], ['again', 0.6], ['extra', 0.6], ['additional', 0.6]] },
-
-  { gloss: 'EAT', pos: 'verb', english: 'eat', meaning: 'The act of eating, or hunger.',
-    signForm: [{ E: 'E07', L: 'L03', H: { right: 'H08' } }, { M: { right: 'M12' } }, { HD: 'HD02' }],
-    keywords: [['eat', 1], ['food', 0.8], ['hungry', 0.9], ['hunger', 0.8], ['meal', 0.7], ['lunch', 0.6], ['dinner', 0.6], ['breakfast', 0.6], ['snack', 0.6], ['starving', 0.6], ['feed', 0.5]] },
-
+const CURATED = [
+  { gloss: 'HELLO', lemma: 'hello', pos: 'interj', english: 'hello', meaning: 'A friendly greeting: a flat hand salutes outward from the forehead.',
+    // together: the handshape and its place at the forehead are deliberately linked — a
+    // demonstration of the explicit pairing feature.
+    first: { E: 'E02', together: [['H', 'L']] },
+    keywords: [['hello', 1], ['hi', 1], ['hey', 0.8], ['greetings', 0.6], ['howdy', 0.5]] },
+  { gloss: 'THANK YOU', lemma: 'thank_you', pos: 'interj', english: 'thank you', meaning: 'An expression of gratitude: a flat hand moves outward from the mouth.',
+    first: { E: 'E02', HD: 'HD03' },
+    keywords: [['thank you', 1], ['thanks', 1], ['thank', 1]] },
+  { gloss: 'YES', lemma: 'yes', pos: 'interj', english: 'yes', meaning: 'An affirmative answer: a fist nods up and down, like a nodding head.',
+    first: { HD: 'HD02' },
+    keywords: [['yes', 1], ['yeah', 0.9], ['yep', 0.9], ['yup', 0.9]] },
+  { gloss: 'NO', lemma: 'no', pos: 'interj', english: 'no', meaning: 'A negative answer: index and middle fingers snap shut onto the thumb.',
+    first: { HD: 'HD04' },
+    keywords: [['no', 1], ['nope', 0.9], ['nah', 0.9]] },
+  { gloss: 'LOVE', lemma: 'love', pos: 'verb', english: 'love', meaning: 'Deep affection: fists cross over the chest, hugging it.',
+    first: { E: 'E05' },
+    keywords: [['love', 1]] },
+  { gloss: 'HELP', lemma: 'help', pos: 'verb', english: 'help', meaning: 'Assistance: a fist rests on the flat palm of the other hand and lifts.',
+    keywords: [['help', 1], ['assist', 0.9], ['aid', 0.7]] },
+  { gloss: 'WATER', lemma: 'water', pos: 'noun', english: 'water', meaning: 'Water: a W-hand taps the chin.',
+    keywords: [['water', 1]] },
+  { gloss: 'PLEASE', lemma: 'please', pos: 'interj', english: 'please', meaning: 'A polite request: one flat hand circles on the chest.',
+    first: { E: 'E08' },
+    keywords: [['please', 1]] },
+  { gloss: 'I', lemma: 'me', pos: 'pronoun', english: 'I', meaning: 'First-person self-reference (I / me): the index finger points to the chest.',
+    keywords: [['i', 1], ['me', 1]] },
+  { gloss: 'YOU', lemma: 'you', pos: 'pronoun', english: 'you', meaning: 'Second-person reference: point toward the person addressed.',
+    keywords: [['you', 1]] },
+  { gloss: 'WANT', lemma: 'want', pos: 'verb', english: 'want', meaning: 'A desire for something: both open hands draw in toward the body.',
+    keywords: [['want', 1], ['wanna', 0.9], ['would like', 0.9], ['can i have', 0.7], ['could i have', 0.7], ['may i have', 0.7]] },
+  { gloss: 'GOOD', lemma: 'good', pos: 'adj', english: 'good', meaning: 'Approval or a positive quality: a flat hand moves forward from the chin.',
+    first: { E: 'E02' },
+    keywords: [['good', 1]] },
+  { gloss: 'MORE', lemma: 'more', pos: 'adv', english: 'more', meaning: 'An additional amount: the fingertips of both O-hands tap together.',
+    keywords: [['more', 1]] },
+  { gloss: 'EAT', lemma: 'eat', pos: 'verb', english: 'eat', meaning: 'Eating, or food: closed fingertips tap the mouth.',
+    keywords: [['eat', 1]] },
   // MOTHER / FATHER differ ONLY by location (chin vs forehead) — the reason the location parameter exists.
-  { gloss: 'MOTHER', pos: 'noun', english: 'mother', meaning: 'A female parent. Made at the chin.',
-    signForm: [{ E: 'E01', L: 'L04', H: { right: 'H06' } }, { M: { right: 'M11' } }],
-    keywords: [['mother', 1], ['mom', 1], ['mum', 1], ['mama', 0.9], ['mommy', 0.9], ['mummy', 0.9]] },
-
-  { gloss: 'FATHER', pos: 'noun', english: 'father', meaning: 'A male parent. Made at the forehead.',
-    signForm: [{ E: 'E01', L: 'L02', H: { right: 'H06' } }, { M: { right: 'M11' } }],
+  { gloss: 'MOTHER', lemma: 'mother', pos: 'noun', english: 'mother', meaning: 'A female parent: the thumb of an open hand taps the chin.',
+    keywords: [['mother', 1], ['mom', 1], ['mum', 1], ['mama', 0.9], ['mommy', 0.9]] },
+  { gloss: 'FATHER', lemma: 'father', pos: 'noun', english: 'father', meaning: 'A male parent: the thumb of an open hand taps the forehead.',
     keywords: [['father', 1], ['dad', 1], ['papa', 0.9], ['daddy', 0.9]] },
 ];
+
+/** Build the curated entries from ASL-LEX. Throws if a referenced lemma is missing — a data bug. */
+export function buildCuratedGestures() {
+  const primary = new Map(groupMeanings().filter((m) => m.primary).map((m) => [m.word, m]));
+  return CURATED.map((c) => {
+    const m = primary.get(c.lemma);
+    if (!m) throw new Error(`curated ${c.gloss}: ASL-LEX lemma "${c.lemma}" not found`);
+    const steps = stepsFromRow(m.rows[0]);
+    const signForm = steps.map((s, i) => (i === 0 ? { ...s, ...(c.first || {}) } : s));
+    const keywords = [...c.keywords];
+    for (const [syn, lemma] of Object.entries(SAME_SIGN_SYNONYMS)) {
+      if (lemma === c.lemma && !keywords.some(([k]) => k === syn)) keywords.push([syn, 0.95]);
+    }
+    return {
+      gloss: c.gloss, pos: c.pos, english: c.english, meaning: c.meaning, signForm, keywords,
+      source: 'curated', sourceRef: m.rows[0].Code,
+      frequency: Number.isFinite(Number(m.rows[0]['SignFrequency(M)'])) ? Number(m.rows[0]['SignFrequency(M)']) : null,
+    };
+  });
+}
+
+export const curatedGestures = buildCuratedGestures();

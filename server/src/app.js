@@ -7,14 +7,34 @@ import { rateLimit } from './rateLimit.js';
 import { vocabularyRoutes } from './routes/vocabulary.js';
 import { aiRoutes } from './routes/ai.js';
 import { sttRoutes } from './routes/stt.js';
+import { authRoutes } from './routes/auth.js';
+import { learnRoutes } from './routes/learn.js';
+import { feedbackRoutes } from './routes/feedback.js';
+import { adminRoutes } from './routes/admin.js';
+import { attachUser, csrfGuard } from './auth/index.js';
+import { getSettings } from './settings.js';
 
 export function createApp(db) {
   const app = express();
   app.disable('x-powered-by');
+  // Same-origin by design (the built client is served from this app; Vite proxies in dev).
+  // cors() without `credentials` never lets another origin send our session cookie.
   app.use(cors());
+  app.use('/api', attachUser(db), csrfGuard);
 
   app.get('/api/health', (_req, res) => res.json({ ok: true, db: db.kind }));
   app.get('/api/config', (_req, res) => res.json(featureFlags()));
+  app.get('/api/settings', async (_req, res) => {
+    const s = await getSettings(db);
+    res.json({ settings: { siteTitle: s.siteTitle, tagline: s.tagline, announcement: s.announcement,
+      registrationOpen: s.registrationOpen, learningEnabled: s.learningEnabled, feedbackEnabled: s.feedbackEnabled } });
+  });
+
+  const json = express.json({ limit: '256kb' });
+  app.use('/api/auth', json, authRoutes(db));
+  app.use('/api/learn', json, learnRoutes(db));
+  app.use('/api/feedback', json, feedbackRoutes(db));
+  app.use('/api/admin', json, adminRoutes(db));
 
   app.use('/api', vocabularyRoutes(db));
 

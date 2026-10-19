@@ -48,5 +48,11 @@ export function useVocabulary() {
   const ready = !!p.data && !!g.data;
   const reviewCount = useMemo(
     () => gestures.filter((x) => x.needsReview).length, [gestures]);
-  return { vocab, gestures, keywordIndex, ready, error: p.error || g.error, isLoading: p.isLoading || g.isLoading, reviewCount, refetch: () => { p.refetch(); g.refetch(); } };
+  /** How many signs come from each source (curated / asl-lex / authored) — shown in the data notice. */
+  const sources = useMemo(() => {
+    const out = {};
+    for (const x of gestures) { const k = x.source || 'unknown'; out[k] = (out[k] || 0) + 1; }
+    return out;
+  }, [gestures]);
+  return { vocab, gestures, keywordIndex, ready, error: p.error || g.error, isLoading: p.isLoading || g.isLoading, reviewCount, sources, refetch: () => { p.refetch(); g.refetch(); } };
 }

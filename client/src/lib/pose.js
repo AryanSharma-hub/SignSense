@@ -1,13 +1,15 @@
 import { byId } from './vocabulary.js';
 import { resolveHands } from './resolveHands.js';
+import { BODY } from './rig/skeleton.js';
 
 /** Signer viewBox and rest geometry (240x300, same coordinates as v1). */
 export const VIEW = { w: 240, h: 300 };
-// Hands hang at the sides when not in use; when a sign is made with no location, it happens
+// Hands hang at the sides (arms nearly straight) when not in use; when a sign is made with no location, it happens
 // in neutral signing space in front of the chest.
-export const REST = { right: { x: 178, y: 216 }, left: { x: 62, y: 216 } };
+export const REST = { right: { x: 176, y: 234 }, left: { x: 64, y: 234 } };
 export const NEUTRAL = { right: { x: 156, y: 184 }, left: { x: 84, y: 184 }, joined: { x: 120, y: 180 } };
-export const SHOULDER = { right: { x: 144, y: 144 }, left: { x: 96, y: 144 } };
+/** Shoulder joints come from the skeleton (lib/rig/skeleton.js) so pose and rig never disagree. */
+export const SHOULDER = BODY.shoulder;
 export const REACH = 20;
 export const PAD = 14;
 /** Locations describe where the FINGERTIPS make contact; the hand origin sits this far below. */
@@ -86,6 +88,9 @@ export function computeTargets(pose, vocab) {
     const c = clampXY(anchor.x, anchor.y);
     hands[side] = {
       x: c.x, y: c.y, active,
+      // What the hand is meant to touch: 'head' signs may contact the face, so the rig's
+      // collision guard leaves them alone; everything else is kept clear of it.
+      contact: active && loc ? (loc.family === 'head' ? 'head' : 'body') : null,
       shape: byId(vocab, 'H', handId)?.shape || RELAXED_SHAPE,
       motion: active ? motionFor(byId(vocab, 'M', mvId), side, joined) : null,
     };
@@ -124,6 +129,37 @@ export function headMotionOffset(head, t) {
   if (head.motion === 'shake') return 9 * Math.sin((t * tau) / 0.55) * env;
   if (head.motion === 'nod') return -head.rot * (1 - Math.abs(Math.sin((t * Math.PI) / 0.7))) * env; // dips into the tilt, returns
   return 0;
+}
+
+/**
+ * Head movement on three axes for the 2.5D head: `rot` (tilt, degrees), `turn` (shake,
+ * -1..1 left/right yaw shown by shifting the features) and `pitch` (nod, -1..1).
+ */
+export function headMotion(head, t) {
+  const out = { rot: 0, turn: 0, pitch: 0 };
+  if (!head?.motion) return out;
+  const env = t < MOTION_SECONDS - 0.4 ? 1 : Math.max(0, (MOTION_SECONDS - t) / 0.4);
+  const tau = Math.PI * 2;
+  if (head.motion === 'shake') out.turn = Math.sin((t * tau) / 0.55) * env;
+  if (head.motion === 'nod') {
+    const dip = Math.abs(Math.sin((t * Math.PI) / 0.7)) * env;
+    out.pitch = dip;
+    out.rot = headMotionOffset(head, t) * 0.4;
+  }
+  return out;
+}
+
+/**
+ * Sample a movement's path (offsets from the hand's anchor) for the path overlay: one
+ * stroke, or one cycle of a repeating movement. The last point is where the arrow ends.
+ */
+export function motionPath(motion, samples = 24) {
+  if (!motion) return [];
+  const span = { stroke: 0.45, repeat: 0.275, lateral: 0.6, circular: 0.9 }[motion.kind] ?? 0.5;
+  const from = motion.kind === 'lateral' ? -0.15 : 0;
+  const pts = [];
+  for (let i = 0; i <= samples; i++) pts.push(motionOffset(motion, from + (span * i) / samples));
+  return pts;
 }
 
 /** Human-readable one-liner of a pose, for captions and screen readers. */

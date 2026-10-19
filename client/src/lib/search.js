@@ -35,3 +35,46 @@ export function searchGestures(query, gestures, vocab) {
     })
     .sort((a, b) => b.score - a.score);
 }
+
+/**
+ * Why a gesture matched a parameter query: for each parameter the query sets, whether
+ * the gesture has the same value, one from the same family, or something different.
+ */
+export function explainMatch(query, gestureFlat, vocab) {
+  return Object.keys(WEIGHTS).filter((k) => query[k]).map((k) => {
+    const gv = k === 'L' ? (gestureFlat.L || NEUTRAL_LOCATION) : gestureFlat[k];
+    const s = sim(vocab, k, query[k], gv);
+    return { k, kind: s === 1 ? 'same' : s > 0.5 ? 'similar' : 'different' };
+  });
+}
+
+const norm = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+/**
+ * Word search over the library: gloss, keywords and meaning, each match labelled with
+ * the reason it matched. Exact names rank first; nothing is returned for unrelated text.
+ * @returns {Array<{gesture, score:number, reason:string, exact:boolean}>}
+ */
+export function searchText(text, gestures, limit = 20) {
+  const q = norm(text);
+  if (!q) return [];
+  const out = [];
+  for (const g of gestures) {
+    const gloss = norm(g.gloss);
+    const kws = (g.keywords || []).map((k) => norm(typeof k === 'string' ? k : k.keyword));
+    let score = 0, reason = '';
+    const take = (s, r) => { if (s > score) { score = s; reason = r; } };
+    if (gloss === q) take(1, 'Exact sign name');
+    else if (kws.includes(q)) take(0.9, `Keyword “${q}”`);
+    else {
+      if (gloss.startsWith(q)) take(0.8, 'Sign name starts with this');
+      else if (gloss.split(' ').includes(q)) take(0.75, 'Word in the sign name');
+      else if (gloss.includes(q)) take(0.6, 'Sign name contains this');
+      const kw = kws.find((k) => k.startsWith(q));
+      if (kw) take(0.55, `Keyword “${kw}”`);
+      if (q.length >= 3 && norm(g.meaning).split(' ').includes(q)) take(0.45, 'Mentioned in the meaning');
+    }
+    if (score > 0) out.push({ gesture: g, score, reason, exact: score === 1 });
+  }
+  return out.sort((a, b) => b.score - a.score || a.gesture.gloss.length - b.gesture.gloss.length).slice(0, limit);
+}

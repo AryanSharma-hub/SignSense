@@ -10,6 +10,8 @@
     "seed": "node src/db/seed.js",
     "seed:reset": "node src/db/seed.js --force",
     "seed:validate": "node src/db/validateSeed.js",
+    "seed:report": "node src/db/vocabularyReport.js",
+    "admin:create": "node src/createAdmin.js",
     "test": "node --test"
   },
   "dependencies": {

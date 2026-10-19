@@ -10,7 +10,7 @@ export default {
       colors: {
         bg: c('bg'), surface: c('surface'), surface2: c('surface2'),
         ink: c('ink'), muted: c('muted'), line: c('line'), 'line-soft': c('line-soft'),
-        'on-accent': c('on-accent'), ok: c('ok'), live: c('live'),
+        'on-accent': c('on-accent'), ok: c('ok'), live: c('live'), chart: c('chart-1'),
         // One hue per phonological parameter — used consistently everywhere that parameter appears.
         expression: c('expression'),
         hand: c('hand'),

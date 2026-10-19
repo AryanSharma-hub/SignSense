@@ -26,10 +26,14 @@ export function byId(vocab, key, id) {
   return vocab.index[key].get(id) ?? null;
 }
 
-/** Ordinary handshapes a sign is built from — excludes the fingerspelling letters/digits,
- * which live in the same `hands` table but are only ever picked from the Spell tab. */
+/** Handshapes a sign is built from: the real ASL handshape categories. Excludes the
+ * fingerspelling letters/digits (picked only from the Spell tab) and the retired 'legacy'
+ * descriptive shapes, which no sign uses any more. */
 export function expressiveHands(vocab) {
-  return (vocab?.hands || []).filter((h) => !String(h.family || '').startsWith('fingerspell'));
+  return (vocab?.hands || []).filter((h) => {
+    const f = String(h.family || '');
+    return !f.startsWith('fingerspell') && f !== 'legacy';
+  });
 }
 
 /** The 26 letters + 10 digits, for the fingerspelling picker. */
