@@ -26,6 +26,19 @@ if (process.env.ADMIN_EMAIL && process.env.ADMIN_PASSWORD) {
   if (rows[0].n === 0) console.log('No administrator yet. Create one: npm run admin:create -w server -- you@example.com "a-strong-password"');
 }
 
-createApp(db).listen(config.port, () => {
+const server = createApp(db).listen(config.port, () => {
   console.log(`SignSense API on http://localhost:${config.port}  (db: ${db.kind})`);
 });
+
+// Close the database before exiting. PGlite keeps state in memory and flushes it to
+// server/data/pgdata on close; being killed mid-write (Ctrl+C, `node --watch` restarts)
+// leaves a data directory Postgres can no longer open.
+let closing = false;
+const shutdown = async (signal) => {
+  if (closing) return;
+  closing = true;
+  server.close();
+  try { await db.close(); } catch (e) { console.error('Closing the database failed:', e); }
+  process.exit(signal === 'SIGINT' ? 130 : 0);
+};
+for (const s of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(s, () => shutdown(s));

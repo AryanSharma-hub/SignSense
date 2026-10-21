@@ -49,10 +49,14 @@ export function motionFor(mv, side, joined) {
       // Left hand mirrors x so "outward" reads correctly from that side (v1 behaviour).
       const mirror = side === 'left' && !joined ? -1 : 1;
       const xReach = joined ? 10 : REACH;
-      return { kind: 'stroke', x: v.x * xReach * mirror, y: v.y * REACH };
+      // `family` lets a renderer tell a data-placeholder direction (ASL-LEX path shapes) from an authored one.
+      return { kind: 'stroke', x: v.x * xReach * mirror, y: v.y * REACH, family: mv.family };
     }
   }
 }
+
+/** Location family -> what the hand touches. */
+const CONTACT_OF = { head: 'head', hand: 'hand', arm: 'arm' };
 
 /**
  * Pure: pose snapshot {E,HD,L,H,M} -> everything the renderer needs to draw it.
@@ -64,7 +68,9 @@ export function computeTargets(pose, vocab) {
   const q = pose || {};
   const expr = byId(vocab, 'E', q.E);
   const head = byId(vocab, 'HD', q.HD);
-  const loc = byId(vocab, 'L', q.L);
+  // "Signing space" is a destination in front of the body, not a body location.
+  const at = byId(vocab, 'L', q.L);
+  const loc = at?.family === 'neutral' ? null : at;
   const HR = resolveHands(q.H, vocab);
   const M = q.M || { right: null, left: null };
   const joined = HR.joined;
@@ -89,8 +95,12 @@ export function computeTargets(pose, vocab) {
     hands[side] = {
       x: c.x, y: c.y, active,
       // What the hand is meant to touch: 'head' signs may contact the face, so the rig's
-      // collision guard leaves them alone; everything else is kept clear of it.
-      contact: active && loc ? (loc.family === 'head' ? 'head' : 'body') : null,
+      // collision guard leaves them alone; everything else is kept clear of it. 'hand' and
+      // 'arm' locations are on the OTHER hand / arm.
+      contact: active && loc ? (CONTACT_OF[loc.family] ?? 'body') : null,
+      /** The location's id, and whether it is only NEAR the place (ASL-LEX "...Away": no touch). */
+      location: active && loc ? loc.id : null,
+      near: !!(active && loc && /AWAY$/.test(loc.id)),
       shape: byId(vocab, 'H', handId)?.shape || RELAXED_SHAPE,
       motion: active ? motionFor(byId(vocab, 'M', mvId), side, joined) : null,
     };

@@ -72,7 +72,7 @@ export const heads = [
 
 // Anchors are in the 240x300 signer viewBox. L01 is the neutral default.
 export const locations = [
-  { id: 'L01', label: 'Chest (neutral)', bodyRegion: 'chest',    anchorX: 120, anchorY: 160, family: 'torso' },
+  { id: 'L01', label: 'Chest',           bodyRegion: 'chest',    anchorX: 120, anchorY: 160, family: 'torso' },
   { id: 'L02', label: 'Forehead',        bodyRegion: 'forehead', anchorX: 120, anchorY: 52,  family: 'head' },
   { id: 'L03', label: 'Mouth',           bodyRegion: 'mouth',    anchorX: 120, anchorY: 96,  family: 'head' },
   { id: 'L04', label: 'Chin',            bodyRegion: 'chin',     anchorX: 120, anchorY: 114, family: 'head' },

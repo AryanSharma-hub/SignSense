@@ -61,7 +61,7 @@ export default function LessonPage({ lessonId }) {
 
       {sign && (
         <section className="panel grid gap-5 p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] md:p-6" aria-live="polite">
-          <SignPlayer key={sign.id} signForm={sign.signForm} vocab={voc.vocab} label={sign.gloss} loop className="mx-auto w-full max-w-[420px]" />
+          <SignPlayer key={sign.id} signForm={sign.signForm} vocab={voc.vocab} gloss={sign.gloss} label={sign.gloss} loop className="mx-auto w-full max-w-[420px]" />
           <div className="flex flex-col">
             <p className="flex flex-wrap items-center gap-2"><span className="gloss text-[32px] leading-none">{sign.gloss}</span><SourceBadge sign={sign} /></p>
             <p className="mt-2 text-[16px]">{sign.meaning}</p>

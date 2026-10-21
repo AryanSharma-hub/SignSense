@@ -107,7 +107,10 @@ export function stepsFromRow(row) {
   const bothMove = signType === 'SymmetricalOrAlternating' || signType === 'DominanceViolation' || signType === 'SymmetryViolation';
 
   const mv = movementIdFor(row['Movement.2.0'], row['RepeatedMovement.2.0']);
-  const loc1 = locationIdFor(row['MinorLocation.2.0']) ?? (row['MajorLocation.2.0'] === 'Neutral' ? 'L01' : null);
+  // A sign made in neutral signing space has no body location; one that travels into it
+  // (SecondMinorLocation "Neutral") ends at LX_NEUTRAL.
+  const minor = String(row['MinorLocation.2.0'] || '').trim();
+  const loc1 = minor === 'Neutral' ? null : locationIdFor(minor);
   const loc2raw = coded(row['SecondMinorLocation.2.0']) ? locationIdFor(row['SecondMinorLocation.2.0']) : null;
   const loc2 = loc2raw && loc2raw !== loc1 ? loc2raw : null;
   const m2raw = coded(row['HandshapeM2.2.0']) ? handshapeIdFor(row['HandshapeM2.2.0']) : null;

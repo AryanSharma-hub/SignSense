@@ -7,6 +7,7 @@ import { rateLimit } from './rateLimit.js';
 import { vocabularyRoutes } from './routes/vocabulary.js';
 import { aiRoutes } from './routes/ai.js';
 import { sttRoutes } from './routes/stt.js';
+import { signingRoutes } from './routes/signing.js';
 import { authRoutes } from './routes/auth.js';
 import { learnRoutes } from './routes/learn.js';
 import { feedbackRoutes } from './routes/feedback.js';
@@ -41,6 +42,7 @@ export function createApp(db) {
   const limiter = rateLimit();
   app.use('/api/ai', limiter, express.json({ limit: '32kb' }), aiRoutes(db));
   app.use('/api/stt', limiter, sttRoutes());
+  app.use('/api/signing', limiter, express.json({ limit: '8kb' }), signingRoutes());
 
   // Serve the built client in production.
   const indexHtml = path.join(config.clientDist, 'index.html');

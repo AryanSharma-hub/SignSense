@@ -63,14 +63,16 @@ function Shell() {
   const settings = useSiteSettings();
   const { theme, toggle } = useTheme();
   const workspace = path === '/';
+  const authPage = path === '/login' || path === '/register';
   return (
-    <div className={`${workspace ? 'app-shell max-w-[1920px]' : 'max-w-[1240px]'} mx-auto px-3 pb-6 pt-3 sm:px-4`}>
+    <div className={`${workspace ? 'app-shell max-w-[1920px]' : authPage ? 'max-w-[1440px]' : 'max-w-[1240px]'} mx-auto px-3 pb-6 pt-3 sm:px-5 sm:pt-4`}>
       <a href="#main" className="skip-link">Skip to content</a>
-      <TopBar settings={settings} auth={auth} theme={theme} onToggleTheme={toggle} />
-      {settings.announcement && (
+      {/* The sign-in page stands on its own, without the site navigation. */}
+      {!authPage && <TopBar settings={settings} auth={auth} theme={theme} onToggleTheme={toggle} />}
+      {!authPage && settings.announcement && (
         <p role="note" className="mt-2 rounded-xl border border-hand/30 bg-hand/10 px-3 py-2 text-[14px]">{settings.announcement}</p>
       )}
-      <main id="main" className={workspace ? 'workspace-main mt-3' : 'mt-5'}>
+      <main id="main" className={workspace ? 'workspace-main mt-4' : authPage ? '' : 'mt-6'}>
         <Suspense fallback={<p className="py-16 text-center text-muted" role="status">Loading…</p>}>
           <Routes auth={auth} settings={settings} />
         </Suspense>

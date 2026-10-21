@@ -18,7 +18,7 @@ export function ShellProvider({ children }) {
 }
 
 const navClass = (current) =>
-  `inline-flex min-h-[38px] items-center gap-1.5 rounded-lg px-2.5 text-[14px] font-semibold transition-colors ${current ? 'bg-hand/15 text-ink' : 'text-muted hover:bg-surface2 hover:text-ink'}`;
+  `inline-flex min-h-[38px] items-center gap-1.5 rounded-full px-3.5 text-[14px] font-semibold transition-all ${current ? 'bg-accent text-on-accent shadow-glow' : 'text-muted hover:bg-accent/[0.08] hover:text-accent'}`;
 
 /** Site header: brand, page navigation, page tools, theme and account. */
 export function TopBar({ settings, auth, theme, onToggleTheme }) {
@@ -32,18 +32,18 @@ export function TopBar({ settings, auth, theme, onToggleTheme }) {
     ...(isAdmin ? [{ to: '/admin', label: 'Admin', icon: 'shield' }] : []),
   ];
   return (
-    <header className="flex flex-wrap items-center gap-x-4 gap-y-2">
+    <header className="glass relative z-30 flex flex-wrap items-center gap-x-5 gap-y-2 rounded-[22px] px-3 py-2.5 shadow-soft sm:px-4">
       <Link to="/" className="flex items-center gap-3 rounded-xl">
-        <span aria-hidden className="grid h-10 w-10 place-items-center rounded-xl bg-hand text-on-accent">
+        <span aria-hidden className="brand-mark grid h-10 w-10 place-items-center rounded-[14px] text-white shadow-glow">
           <svg viewBox="0 0 32 32" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round"><path d="M9 21c0-6 2-10 7-10s7 4 7 10" /><circle cx="16" cy="8" r="0.5" /></svg>
         </span>
         <span>
-          <h1 className="font-display text-[22px] font-semibold leading-none tracking-tight">{settings.siteTitle}</h1>
-          <span className="hidden text-[13px] text-muted sm:block">{settings.tagline}</span>
+          <h1 className="text-brand font-display text-[22px] font-bold leading-none tracking-tight">{settings.siteTitle}</h1>
+          <span className="mt-0.5 hidden text-[12.5px] text-muted sm:block">{settings.tagline}</span>
         </span>
       </Link>
 
-      <nav aria-label="Main" className="flex flex-wrap items-center gap-1">
+      <nav aria-label="Main" className="flex flex-wrap items-center gap-1 rounded-full border border-line/70 bg-surface2/70 p-1">
         {nav.map((n) => <Link key={n.to} to={n.to} className={navClass}><Icon name={n.icon} size={16} />{n.label}</Link>)}
       </nav>
 
@@ -53,7 +53,7 @@ export function TopBar({ settings, auth, theme, onToggleTheme }) {
           <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
         </button>
         {user ? (
-          <Popover label="Account" trigger={<><span aria-hidden className="grid h-6 w-6 place-items-center rounded-full bg-hand text-[12px] font-bold text-on-accent">{user.name.slice(0, 1).toUpperCase()}</span><span className="max-w-[12ch] truncate">{user.name}</span></>}>
+          <Popover label="Account" trigger={<><span aria-hidden className="grid h-6 w-6 place-items-center rounded-full brand-mark text-[12px] font-bold text-white">{user.name.slice(0, 1).toUpperCase()}</span><span className="max-w-[12ch] truncate">{user.name}</span></>}>
             <p className="font-semibold">{user.name}</p>
             <p className="text-[13px] text-muted">{user.email}{isAdmin ? ' · Administrator' : ''}</p>
             <div className="mt-3 grid gap-1.5">

@@ -25,7 +25,7 @@ function settledFrame(T) {
     const s = handState(T.hands[side]);
     const m = T.hands[side].motion;
     const off = m?.kind === 'stroke' ? motionOffset(m, 99) : { x: 0, y: 0 };
-    out[side] = { ...s, x: s.x + off.x, y: s.y + off.y };
+    out[side] = { ...s, x: s.x + off.x, y: s.y + off.y, ox: off.x, oy: off.y };
   }
   return out;
 }
@@ -84,7 +84,8 @@ export function useAnimatedPose(targets, { idle = true, speed = 1, paused = fals
       if (m && t < (m.kind === 'stroke' ? 0.6 : MOTION_SECONDS)) animating = true;
       const off = motionOffset(m, t);
       const sway = s.idle && !T.hands[side].active ? Math.sin(s.idleT * 0.9 + (side === 'left' ? 1.3 : 0)) * 0.9 : 0;
-      out[side] = { ...c, curl: c.curl.slice(), x: c.x + off.x, y: c.y + off.y + sway };
+      // ox/oy: the movement alone (the 3D signer adds it to its own anchor).
+      out[side] = { ...c, curl: c.curl.slice(), x: c.x + off.x, y: c.y + off.y + sway, ox: off.x, oy: off.y };
     }
     if (T.head.motion && t < MOTION_SECONDS) animating = true;
     const bob = s.idle ? Math.sin(s.idleT / 1.5) : 0;

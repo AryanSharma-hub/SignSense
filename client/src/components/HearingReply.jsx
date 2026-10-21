@@ -46,7 +46,7 @@ export function HearingReply({ reverse, stt, player }) {
             onClick={listening ? stt.stop : stt.start}
             aria-label={listening ? 'Stop listening' : 'Speak to the signer'}
             className={`grid h-14 w-14 place-items-center rounded-full border-2 transition-colors disabled:opacity-40
-              ${listening ? 'pulse-live border-live bg-live text-on-accent' : 'border-ink bg-ink text-bg hover:bg-ink/85'}`}
+              ${listening ? 'pulse-live border-live bg-live text-on-accent' : 'brand-mark border-transparent text-white shadow-glow hover:brightness-110'}`}
           >
             <Icon name={listening ? 'stop' : 'mic'} size={24} />
           </button>

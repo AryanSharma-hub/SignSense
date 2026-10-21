@@ -1,5 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { SignerDummy } from './SignerDummy.jsx';
+import { Signer } from './Signer.jsx';
 import { Icon, ParamChip, TONE, SourceBadge } from './ui.jsx';
 import { searchGestures, explainMatch, searchText } from '../lib/search.js';
 import { flattenStepsFlat, mergeFull } from '../lib/steps.js';
@@ -25,7 +25,7 @@ function MiniPreview({ gesture, vocab, autoplay }) {
 
   return (
     <div className="w-[64px] shrink-0 overflow-hidden rounded-lg bg-surface2" onMouseEnter={play} onFocus={play} tabIndex={-1} aria-hidden="true">
-      <SignerDummy pose={pose} vocab={vocab} compact framing="upper" />
+      <Signer pose={pose} vocab={vocab} compact framing="upper" />
     </div>
   );
 }

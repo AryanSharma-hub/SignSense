@@ -133,7 +133,7 @@ test('upgrading an older database replaces stale seed rows but keeps admin edits
 
 test('/api/config advertises flags but never keys', async () => {
   const c = await get('/api/config');
-  assert.deepEqual(c, { ai: { sentence: true, concepts: true }, stt: { server: false } });
+  assert.deepEqual(c, { ai: { sentence: true, concepts: true }, stt: { server: false }, signing: { recorded: true } });
 });
 
 test('AI sentence route proxies the LLM and validates input', async () => {

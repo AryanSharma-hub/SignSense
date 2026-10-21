@@ -5,34 +5,40 @@
 @import '@fontsource/atkinson-hyperlegible-next/700.css';
 @import '@fontsource/atkinson-hyperlegible-mono/400.css';
 @import '@fontsource/atkinson-hyperlegible-mono/500.css';
+@import '@fontsource/great-vibes/400.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /*
- * Design tokens. Light = cool paper + ink; dark = deep blue-slate.
- * Chroma is reserved for meaning: the five parameter hues, a live/recording red, and ok.
- * Everything else is neutral, so the parameter colors read at a glance.
+ * Design tokens. Light = lavender paper + plum ink; dark = deep aubergine.
+ * Brand: plum (--accent) glowing into orange (--glow), over a soft lavender (--haze).
+ * Chroma inside the workspace is reserved for meaning: the five parameter hues, a
+ * live/recording red, and ok — so the parameter colors still read at a glance.
  */
 :root {
-  --bg: 234 238 243;
+  --bg: 246 241 250;
   --surface: 255 255 255;
-  --surface2: 243 246 250;
-  --ink: 22 27 35;
-  --muted: 88 98 113;
-  --line: 208 214 223;
-  --line-soft: 226 231 238;
+  --surface2: 247 242 250;
+  --ink: 40 14 44;
+  --muted: 112 92 118;
+  --line: 228 217 235;
+  --line-soft: 240 233 245;
+  --accent: 114 0 78;
+  --accent-2: 160 24 112;
+  --glow: 255 122 26;
+  --haze: 201 182 232;
   --on-accent: 255 255 255;
-  --expression: 168 92 10;
-  --hand: 12 118 106;
-  --movement: 98 66 190;
-  --head: 172 52 78;
-  --location: 96 114 8;
-  --ok: 24 128 80;
-  --live: 208 50 38;
-  --dummy-fill: 250 251 253;
-  --dummy-line: 150 160 175;
+  --expression: 196 96 0;
+  --hand: 10 122 110;
+  --movement: 104 64 206;
+  --head: 190 30 92;
+  --location: 98 118 8;
+  --ok: 22 132 82;
+  --live: 214 48 40;
+  --dummy-fill: 252 250 253;
+  --dummy-line: 160 148 172;
   /* Per-finger hues (dummy only) — distinct from the five parameter hues above so a
      handshape's own curl pattern reads at a glance without implying a parameter meaning. */
   --finger-index: 194 65 12;
@@ -45,10 +51,10 @@
   --skin-hi: 240 202 174;
   --skin-shade: 198 146 114;
   --skin-line: 140 92 68;
-  --shirt: 52 86 122;
-  --shirt-hi: 78 116 156;
-  --shirt-shade: 40 68 98;
-  --shirt-line: 28 48 72;
+  --shirt: 92 34 98;
+  --shirt-hi: 128 62 132;
+  --shirt-shade: 70 24 76;
+  --shirt-line: 46 14 52;
   --hair: 52 38 32;
   --hair-hi: 112 86 70;
   --sclera: 252 252 250;
@@ -60,23 +66,27 @@
   --chart-1: 0 143 126;
 }
 .dark {
-  --bg: 15 19 25;
-  --surface: 23 28 36;
-  --surface2: 30 36 46;
-  --ink: 233 236 241;
-  --muted: 154 163 178;
-  --line: 47 55 67;
-  --line-soft: 36 43 53;
-  --on-accent: 15 19 25;
-  --expression: 236 168 66;
-  --hand: 86 212 199;
-  --movement: 182 146 255;
-  --head: 255 146 164;
-  --location: 186 208 76;
+  --bg: 19 11 24;
+  --surface: 30 20 37;
+  --surface2: 40 28 48;
+  --ink: 247 238 245;
+  --muted: 178 158 186;
+  --line: 62 45 72;
+  --line-soft: 46 33 55;
+  --accent: 240 120 196;
+  --accent-2: 255 150 92;
+  --glow: 255 128 44;
+  --haze: 92 62 140;
+  --on-accent: 24 10 28;
+  --expression: 246 172 72;
+  --hand: 86 214 198;
+  --movement: 186 150 255;
+  --head: 255 140 172;
+  --location: 190 212 80;
   --ok: 84 222 150;
   --live: 255 124 108;
-  --dummy-fill: 40 47 59;
-  --dummy-line: 110 122 140;
+  --dummy-fill: 46 34 54;
+  --dummy-line: 128 110 140;
   --finger-index: 251 146 60;
   --finger-middle: 74 222 128;
   --finger-ring: 103 232 249;
@@ -86,10 +96,10 @@
   --skin-hi: 236 196 168;
   --skin-shade: 186 134 104;
   --skin-line: 110 70 52;
-  --shirt: 38 70 88;
-  --shirt-hi: 58 100 118;
-  --shirt-shade: 28 54 70;
-  --shirt-line: 14 30 40;
+  --shirt: 86 36 94;
+  --shirt-hi: 118 60 126;
+  --shirt-shade: 64 26 72;
+  --shirt-line: 30 10 36;
   --hair: 40 30 26;
   --hair-hi: 100 78 64;
   --sclera: 246 246 244;
@@ -107,22 +117,35 @@
     font-feature-settings: 'ss01', 'kern';
     min-height: 100dvh;
   }
-  :focus-visible { outline: 3px solid rgb(var(--hand)); outline-offset: 2px; border-radius: 6px; }
-  ::selection { background: rgb(var(--hand) / 0.25); }
+  /* A quiet brand glow behind every page: lavender haze top-left, a warm orange ember bottom-right. */
+  body::before {
+    content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+    background:
+      radial-gradient(60vmax 50vmax at -10% -15%, rgb(var(--haze) / 0.55), transparent 60%),
+      radial-gradient(55vmax 45vmax at 110% 115%, rgb(var(--glow) / 0.16), transparent 60%),
+      radial-gradient(40vmax 30vmax at 70% -10%, rgb(var(--accent) / 0.06), transparent 70%);
+  }
+  :focus-visible { outline: 3px solid rgb(var(--accent) / 0.75); outline-offset: 2px; border-radius: 6px; }
+  ::selection { background: rgb(var(--accent) / 0.2); }
   button { @apply select-none; touch-action: manipulation; }
 }
 
 @layer components {
-  .panel { @apply bg-surface border border-line rounded-2xl; }
+  .panel { @apply bg-surface border border-line/80 rounded-[22px] shadow-soft; }
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface px-3.5 min-h-[44px]
-           text-[15px] font-medium text-ink transition-colors hover:bg-surface2 disabled:opacity-45 disabled:pointer-events-none;
+           text-[15px] font-medium text-ink transition-all duration-150 hover:bg-surface2 hover:border-accent/25
+           active:scale-[0.98] disabled:opacity-45 disabled:pointer-events-none;
   }
-  .btn-primary { @apply border-transparent bg-ink text-bg hover:bg-ink/85; }
-  .btn-quiet { @apply border-transparent bg-transparent hover:bg-surface2; }
+  .btn-primary {
+    @apply border-transparent text-on-accent shadow-glow hover:border-transparent hover:brightness-110;
+    background-image: linear-gradient(135deg, rgb(var(--accent)), rgb(var(--accent-2)));
+  }
+  .btn-quiet { @apply border-transparent bg-transparent shadow-none hover:bg-accent/[0.07] hover:border-transparent; }
   .field-label { @apply text-[13px] font-semibold text-muted; }
   .input {
-    @apply block min-h-[44px] w-full rounded-xl border border-line bg-surface px-3 text-[16px] text-ink placeholder:text-muted/70;
+    @apply block min-h-[44px] w-full rounded-xl border border-line bg-surface px-3 text-[16px] text-ink transition-shadow
+           placeholder:text-muted/70 focus:border-accent/50 focus:outline-none focus:ring-4 focus:ring-accent/10;
   }
   textarea.input { @apply py-2.5; }
   select.input { @apply pr-8; }
@@ -140,8 +163,90 @@
 .loc-dot { cursor: pointer; }
 .loc-dot:hover circle.core, .loc-dot:focus-visible circle.core { r: 5.5; }
 
-/* Timeline scrubber in the mint accent. */
-.scrubber { accent-color: rgb(var(--hand)); height: 28px; }
+/* 3D signer overlays: keyboard rings over each body part, location dots, hover / drag tags. */
+.part-3d { width: 44px; height: 44px; border-radius: 9999px; background: transparent; border: 2px solid transparent; pointer-events: none; transition: border-color .15s, box-shadow .15s; }
+.part-3d:focus-visible { outline: none; border-color: rgb(var(--accent) / 0.9); box-shadow: 0 0 0 4px rgb(var(--accent) / 0.18); }
+.part-3d.is-selected { border-color: rgb(var(--accent)); box-shadow: 0 0 0 5px rgb(var(--accent) / 0.16); }
+.part-3d.is-editing { border: 2px dashed rgb(var(--hand) / 0.8); }
+.loc-3d { width: 18px; height: 18px; border-radius: 9999px; background: rgb(var(--location) / 0.2); border: 1.5px dashed rgb(var(--location)); transition: transform .12s; }
+.loc-3d::after { content: ''; position: absolute; inset: 4px; border-radius: 9999px; background: rgb(var(--location)); }
+.loc-3d:hover, .loc-3d:focus-visible { outline: none; box-shadow: 0 0 0 4px rgb(var(--location) / 0.25); }
+.loc-3d.is-on { border-style: solid; border-width: 2px; box-shadow: 0 0 0 5px rgb(var(--location) / 0.2); }
+.loc-3d-label { position: absolute; left: 22px; top: 50%; transform: translateY(-50%); white-space: nowrap; font-size: 12px; font-weight: 700; color: rgb(var(--location)); background: rgb(var(--surface) / 0.9); padding: 1px 6px; border-radius: 6px; }
+.signer3d-tag { position: absolute; transform: translate(-50%, calc(-100% - 12px)); pointer-events: none; white-space: nowrap; border-radius: 9999px; padding: 3px 10px; font-size: 12px; font-weight: 700; background: rgb(var(--ink) / 0.92); color: rgb(var(--bg)); }
+.signer3d-tag.is-accent { background: rgb(var(--accent)); color: rgb(var(--on-accent)); }
+.signer3d-loading { background: radial-gradient(ellipse at 50% 40%, rgb(var(--haze) / 0.35), transparent 70%); }
+
+/* Timeline scrubber in the brand accent. */
+.scrubber { accent-color: rgb(var(--accent)); height: 28px; }
+
+/* Brand mark: plum melting into orange, like the login scene. */
+.brand-mark { background-image: linear-gradient(140deg, rgb(114 0 78), rgb(196 40 110) 55%, rgb(255 122 26)); }
+.text-brand {
+  background-image: linear-gradient(100deg, rgb(var(--accent)), rgb(var(--accent-2)) 60%, rgb(var(--glow)));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+
+/* Frosted glass for floating chrome (top bar, login card). */
+.glass {
+  background: rgb(var(--surface) / 0.72);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4); backdrop-filter: blur(18px) saturate(1.4);
+  border: 1px solid rgb(var(--surface) / 0.6);
+}
+.dark .glass { background: rgb(var(--surface) / 0.66); border-color: rgb(var(--line) / 0.8); }
+
+/*
+ * Login scene — a lavender sky with two great spheres: a pale lilac one pressing down
+ * from above and a glowing orange one rising from below. Where they overlap, a bright
+ * peach lens forms. The spheres breathe slowly up and down in opposite directions.
+ */
+.login-scene { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+  --sky-a: 196 176 226; --sky-b: 226 214 244; --orb-a: 255 244 232; --orb-b: 255 168 104; --orb-c: 255 112 18; --lid: 214 196 238; }
+.login-scene .sky { position: absolute; inset: 0; background: linear-gradient(160deg, rgb(var(--sky-a)), rgb(var(--sky-b)) 55%, rgb(var(--sky-a))); }
+.login-scene .orb {
+  position: absolute; left: 50%; width: 150vmax; height: 150vmax; margin-left: -75vmax; border-radius: 50%;
+  will-change: transform;
+}
+/* Softened so the sky shows through: the glow stays, the orange no longer shouts. */
+.login-scene .orb-sun { opacity: 0.62; }
+.login-scene .orb-moon { opacity: 0.8; }
+.login-scene .lens { opacity: 0.55; }
+.login-scene .orb-sun {
+  top: 30vh;
+  background: radial-gradient(circle closest-side, rgb(var(--orb-c)) 0%, rgb(var(--orb-c)) 62%, rgb(var(--orb-b)) 84%, rgb(var(--orb-a)) 96%, rgb(255 255 255 / 0.85) 99%, rgb(255 255 255 / 0) 100%);
+  filter: drop-shadow(0 -1vmax 3vmax rgb(255 255 255 / 0.45));
+  animation: orb-rise 9s ease-in-out infinite alternate;
+}
+.login-scene .orb-moon {
+  bottom: 50vh;
+  background: radial-gradient(circle closest-side, rgb(var(--lid) / 0.55) 0%, rgb(var(--lid) / 0.5) 86%, rgb(255 255 255 / 0.55) 98%, rgb(255 255 255 / 0) 100%);
+  filter: drop-shadow(0 1.5vmax 3vmax rgb(255 236 222 / 0.6));
+  animation: orb-fall 9s ease-in-out infinite alternate;
+}
+.login-scene .lens {
+  position: absolute; left: 50%; top: 32vh; width: 74vw; height: 46vh; margin-left: -37vw; border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 60%, rgb(var(--orb-c) / 0.85), rgb(var(--orb-b) / 0.6) 45%, rgb(var(--orb-a) / 0.25) 70%, transparent 75%);
+  filter: blur(18px); animation: lens-breathe 9s ease-in-out infinite alternate;
+}
+.login-scene .grain { position: absolute; inset: 0; opacity: 0.18; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+@keyframes orb-rise { from { transform: translateY(4vh) scale(1); } to { transform: translateY(-5vh) scale(1.03); } }
+@keyframes orb-fall { from { transform: translateY(-3vh); } to { transform: translateY(4vh); } }
+@keyframes lens-breathe { from { transform: translateY(3vh) scaleY(0.92); } to { transform: translateY(-3vh) scaleY(1.06); } }
+@media (prefers-reduced-motion: reduce) { .login-scene .orb, .login-scene .lens { animation: none; } }
+
+/* The calligraphic wordmark above the login card. */
+.login-wordmark {
+  font-family: "Great Vibes", cursive;
+  font-weight: 400; line-height: 1.05; letter-spacing: 0.01em;
+  font-size: clamp(52px, 9vw, 132px); color: rgb(114 0 78);
+  text-shadow: 0 2px 24px rgb(255 255 255 / 0.55);
+}
+.login-ink { color: rgb(114 0 78); }
+@media (prefers-reduced-motion: no-preference) {
+  .rise-in { animation: rise-in 0.8s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes rise-in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+}
 
 /* Position the mic pulse only when motion is welcome. */
 @media (prefers-reduced-motion: no-preference) {
@@ -167,7 +272,7 @@
  * come from React state (useResizable) as CSS custom properties; dividers sit in their
  * own thin tracks. Below 1180px everything stacks in one scrolling column, avatar first.
  */
-.workspace { display: flex; flex-direction: column; gap: 0.75rem; }
+.workspace { display: flex; flex-direction: column; gap: 1rem; }
 .ws-suggest, .ws-convo, .ws-builder, .ws-sentence, .ws-stage { min-width: 0; min-height: 0; }
 .ws-div-left, .ws-div-right, .ws-div-bottom { display: none; }
 .ws-stage { order: -1; height: min(88dvh, 760px); }
@@ -194,8 +299,8 @@
   .app-shell .workspace-main { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
   .workspace {
     flex: 1 1 auto; min-height: 0; display: grid; gap: 0;
-    grid-template-columns: var(--left-w, 340px) 10px minmax(0, 1fr) minmax(0, 1fr) 10px var(--right-w, 380px);
-    grid-template-rows: minmax(0, 1fr) 10px var(--bottom-h, 300px);
+    grid-template-columns: var(--left-w, 340px) 16px minmax(0, 1fr) minmax(0, 1fr) 16px var(--right-w, 380px);
+    grid-template-rows: minmax(0, 1fr) 16px var(--bottom-h, 300px);
     grid-template-areas:
       "suggest dl stage stage dr convo"
       "hdiv hdiv hdiv hdiv hdiv hdiv"
@@ -204,8 +309,8 @@
   .ws-suggest { grid-area: suggest; overflow-y: auto; }
   .ws-stage { grid-area: stage; order: 0; height: auto; }
   .ws-convo { grid-area: convo; height: auto; }
-  .ws-builder { grid-area: builder; overflow-y: auto; margin-right: 5px; }
-  .ws-sentence { grid-area: sentence; overflow-y: auto; margin-left: 5px; }
+  .ws-builder { grid-area: builder; overflow-y: auto; margin-right: 8px; }
+  .ws-sentence { grid-area: sentence; overflow-y: auto; margin-left: 8px; }
   .ws-div-left { grid-area: dl; display: flex; justify-content: center; }
   .ws-div-right { grid-area: dr; display: flex; justify-content: center; }
   .ws-div-bottom { grid-area: hdiv; display: flex; flex-direction: column; justify-content: center; }

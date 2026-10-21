@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { SignerDummy, FRAMINGS } from './SignerDummy.jsx';
+import { Signer, FRAMINGS } from './Signer.jsx';
 import { PartInspector, NowSigning } from './PartInspector.jsx';
 import { PlaybackBar } from './PlaybackBar.jsx';
 import { Icon } from './ui.jsx';
@@ -45,7 +45,7 @@ export function Stage({ composer, vocab, player }) {
     }
   };
 
-  const caption = performing
+  const caption = player.loading ? 'Getting the recorded signing…' : performing
     ? `Signing ${player.label || '…'}${player.count > 1 ? ` (${player.word + 1} of ${player.count})` : ''}${player.paused ? ' — paused' : ''}`
     : describePose(pose, vocab);
   const canAct = arraySteps.length > 0 && !performing;
@@ -62,7 +62,7 @@ export function Stage({ composer, vocab, player }) {
           {Object.entries(FRAMINGS).map(([k, fr]) => (
             <button
               key={k} type="button" role="radio" aria-checked={framing === k} onClick={() => setFraming(k)}
-              className={`min-h-[30px] rounded-md px-2 text-[12.5px] font-semibold ${framing === k ? 'bg-ink text-bg' : 'text-muted hover:text-ink'}`}
+              className={`min-h-[30px] rounded-md px-2 text-[12.5px] font-semibold ${framing === k ? 'bg-accent text-on-accent shadow-glow' : 'text-muted hover:text-ink'}`}
             >{fr.label}</button>
           ))}
         </div>
@@ -76,8 +76,9 @@ export function Stage({ composer, vocab, player }) {
       <div className="stage-body min-h-0 flex-1">
         <div className="stage-avatar relative min-h-0">
           <div className="absolute inset-0 rounded-xl2 bg-[radial-gradient(ellipse_at_50%_35%,rgb(var(--surface2)),rgb(var(--surface))_70%)]" aria-hidden />
-          <SignerDummy
-            pose={shown} vocab={vocab} interactive={!performing} fit="contain" framing={framing}
+          <Signer
+            pose={shown} vocab={vocab} interactive={!performing} fit="contain" framing={framing} className="rounded-xl2"
+            clip={performing ? player.clip : null} clipSpan={performing ? player.frames[player.index]?.span ?? null : null}
             guides={showGuides} speed={player.speed} paused={performing && player.paused}
             selectedPart={performing ? null : part} editingHand={performing ? null : activeHand}
             onPartSelect={selectPart} onDragPreview={onDragPreview} onDragCommit={onDragCommit}
@@ -94,7 +95,7 @@ export function Stage({ composer, vocab, player }) {
       <div className="shrink-0 border-t border-line px-3 py-2.5">
         <PlaybackBar
           player={player} canAct={canAct}
-          onAct={() => player.perform([{ gloss: 'your sign', signForm: arraySteps }], { label: 'your sign', source: 'A' })}
+          onAct={() => player.perform([{ gloss: 'your sign', signForm: arraySteps }], { label: 'your sign', source: 'A', recorded: false })}
         />
       </div>
     </section>

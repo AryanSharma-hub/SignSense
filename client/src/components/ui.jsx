@@ -76,7 +76,7 @@ export function Divider({ axis = 'x', onDragStart, onNudge, label }) {
   );
 }
 
-export function Segmented({ value, onChange, options, label, tone = 'bg-ink text-bg' }) {
+export function Segmented({ value, onChange, options, label, tone = 'bg-accent text-on-accent shadow-glow' }) {
   return (
     <div role="radiogroup" aria-label={label} className="inline-flex rounded-xl border border-line bg-surface2 p-1">
       {options.map((o) => (
