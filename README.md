@@ -43,6 +43,23 @@ npm run build        # builds client/dist
 npm start            # Express serves the API and the built client on one port
 ```
 
+### Deploying on Render
+
+The repository includes a Render Blueprint (`render.yaml`) for the Node web service. To deploy:
+
+1. Create a free PostgreSQL database with a hosted provider such as Neon. Do not use the server's local PGlite
+   database for a hosted deployment: Render's free web service has an ephemeral filesystem.
+2. In Render, create a new Blueprint and connect this GitHub repository. Render builds the client and starts the
+   API, which also serves the built client.
+3. Set `DATABASE_URL` in the Render service environment to the hosted database connection string. Keep
+   `DATABASE_SSL=true` for hosted databases requiring TLS.
+4. Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` (and optionally `ADMIN_NAME`) in the Render service environment to
+   bootstrap the first administrator. Use a unique, strong password and keep it private.
+
+The server creates/upgrades the schema and seeds the vocabulary and starter lessons at startup. Render's free web
+service can spin down when idle, so the first request afterward may take about a minute. Free hosting is intended
+for testing and hobby projects, not production.
+
 ### Accounts, learning and the admin dashboard
 
 The translator needs no account. Learners create one to use the **learning module**: a course of short
